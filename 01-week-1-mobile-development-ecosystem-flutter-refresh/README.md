@@ -24,14 +24,13 @@ Praktikum ini bertujuan untuk:
 2. Melakukan instalasi Dart SDK dan Flutter SDK melalui Chocolatey CLI.
 3. Melakukan instalasi Visual Studio Code beserta ekstensi pendukung Flutter dan Dart.
 4. Melakukan instalasi Android Studio, Android SDK, Build-Tools, dan Platform-Tools (ADB).
-5. Melakukan konfigurasi lisensi dan komponen Android SDK.
-6. Melakukan konfigurasi variabel lingkungan (*Environment Variables*) pada Windows.
-7. Melakukan konfigurasi keamanan Git menggunakan `safe.directory`.
-8. Menghubungkan perangkat Android fisik melalui USB Debugging dan ADB.
-9. Membuat project Flutter pertama.
-10. Menyusun dan memahami kode program pada `lib/main.dart`.
-11. Melakukan proses build dan debugging aplikasi Flutter.
-12. Menjalankan aplikasi Flutter pada perangkat Android fisik.
+5. Melakukan konfigurasi variabel lingkungan (*Environment Variables*) pada Windows.
+6. Melakukan konfigurasi keamanan Git menggunakan `safe.directory`.
+7. Menghubungkan perangkat Android fisik melalui USB Debugging dan ADB.
+8. Membuat project Flutter pertama.
+9. Menyusun dan memahami kode program pada `lib/main.dart`.
+10. Melakukan proses build dan debugging aplikasi Flutter.
+11. Menjalankan aplikasi Flutter pada perangkat Android fisik.
 
 ---
 
@@ -61,7 +60,7 @@ Jika berhasil, PowerShell akan menampilkan versi Chocolatey yang terpasang.
 
 **Dokumentasi:**
 
-![Instalasi Chocolatey](img/01-chocolatey.png)
+![Instalasi Chocolatey](ScreenShoot/InstallChocolatey.png)
 
 ---
 
@@ -104,11 +103,13 @@ Flutter digunakan sebagai framework untuk membangun aplikasi multiplatform, seda
 
 **Dokumentasi:**
 
-![Instalasi Dart dan Flutter](img/02-flutter-dart.png)
+![Instalasi Dart dan Flutter](ScreenShoot/InstallDartSDK.png)
+
+![Instalasi Dart dan Flutter](ScreenShoot/IsntallFlutterSDK.png)
 
 ---
 
-## 3. Instalasi Visual Studio Code dan Ekstensi Flutter
+## 3. Instalasi Ekstensi Dart dan Ekstensi Flutter di VS Code
 
 Visual Studio Code digunakan sebagai text editor/IDE untuk menulis dan mengelola kode aplikasi Flutter.
 
@@ -130,7 +131,9 @@ Setelah ekstensi terpasang, project Flutter dapat dibuka langsung melalui Visual
 
 **Dokumentasi:**
 
-![Visual Studio Code](img/03-vscode.png)
+![Visual Studio Code](ScreenShoot/FlutterVS.png)
+
+![Visual Studio Code](ScreenShoot/DartVS.png)
 
 ---
 
@@ -164,49 +167,15 @@ Hasil pemeriksaan menunjukkan Android SDK telah terdeteksi oleh Flutter.
 
 **Dokumentasi:**
 
-![Android Studio](img/04-android-studio.png)
+![Android Studio](ScreenShoot/InstallAndroidStudio.png)
+
+![Android Studio](ScreenShoot/InstallADRSDKP.png)
+
+![Android Studio](ScreenShoot/IsntallADRSDKT.png)
 
 ---
 
-## 5. Konfigurasi Android SDK dan Lisensi
-
-Setelah Android SDK terpasang, lisensi Android perlu disetujui agar Flutter dapat melakukan proses build aplikasi Android.
-
-Perintah yang digunakan:
-
-```powershell
-flutter doctor --android-licenses
-```
-
-Setiap lisensi yang ditampilkan dapat diterima dengan mengetik:
-
-```text
-y
-```
-
-Kemudian konfigurasi dapat diperiksa kembali:
-
-```powershell
-flutter doctor -v
-```
-
-Pada proses build aplikasi, Flutter juga dapat mengunduh komponen SDK yang belum tersedia secara otomatis.
-
-Dalam praktikum ini, Flutter melakukan instalasi beberapa komponen, antara lain:
-
-```text
-Android SDK Build-Tools 35.0.0
-Android SDK Platform 36
-CMake 3.22.1
-```
-
-**Dokumentasi:**
-
-![Android SDK dan License](img/05-android-sdk.png)
-
----
-
-## 6. Konfigurasi Java dan Gradle
+## 5. Konfigurasi Java dan Gradle
 
 Flutter membutuhkan Java untuk melakukan proses build aplikasi Android.
 
@@ -258,13 +227,9 @@ Java version:
 
 Setelah perubahan tersebut, proses build berhasil dilakukan.
 
-**Dokumentasi:**
-
-![Konfigurasi Java](img/06-java-gradle.png)
-
 ---
 
-## 7. Konfigurasi Environment Variables
+## 6. Konfigurasi Environment Variables
 
 Environment Variables digunakan agar berbagai tools seperti Flutter, Dart, Java, dan Android SDK dapat diakses melalui command line.
 
@@ -296,11 +261,13 @@ Jika belum ditambahkan ke PATH, ADB dapat dijalankan menggunakan lokasi lengkap:
 
 **Dokumentasi:**
 
-![Environment Variables](img/07-environment-variable.png)
+![Environment Variables](ScreenShoot/CekFlutterVersion.png)
+
+![Environment Variables](ScreenShoot/InstallAdbDanDebug.png)
 
 ---
 
-## 8. Konfigurasi Git Safe Directory
+## 7. Konfigurasi Git Safe Directory
 
 Git dapat memberikan peringatan keamanan apabila repository berada pada direktori yang dianggap memiliki kepemilikan berbeda.
 
@@ -320,11 +287,11 @@ Konfigurasi `safe.directory` membantu Git mengenali repository sebagai direktori
 
 **Dokumentasi:**
 
-![Git Safe Directory](img/08-git-safe-directory.png)
+![Git Safe Directory](ScreenShoot/Memberikan%20aksesFlutterSDK.png)
 
 ---
 
-## 9. Menghubungkan Perangkat Android dengan USB Debugging
+## 8. Menghubungkan Perangkat Android dengan USB Debugging
 
 Smartphone Android digunakan sebagai perangkat fisik untuk menjalankan aplikasi Flutter.
 
@@ -359,11 +326,13 @@ Perangkat tersebut memiliki identifier ADB:
 
 **Dokumentasi:**
 
-![USB Debugging](img/09-usb-debugging.png)
+![USB Debugging](ScreenShoot/FlutterDevice.png)
+
+![USB Debugging](ScreenShoot/FlutterDoctor.png)
 
 ---
 
-## 10. Membuat dan Menjalankan Project Flutter
+## 9. Membuat dan Menjalankan Project Flutter
 
 Project Flutter dibuat dengan struktur dasar Flutter.
 
@@ -414,11 +383,11 @@ my_first_app/
 
 **Dokumentasi:**
 
-![Project Flutter](img/10-flutter-project.png)
+![Project Flutter](ScreenShoot/HasilCreateFlutter.png)
 
 ---
 
-## 11. Proses Build dan Debugging Aplikasi
+## 10. Proses Build dan Debugging Aplikasi
 
 Aplikasi dijalankan menggunakan:
 
@@ -451,11 +420,22 @@ Hal tersebut menunjukkan bahwa **proses build aplikasi berhasil**.
 
 **Dokumentasi:**
 
-![Flutter Build](img/11-flutter-build.png)
+![Flutter Build](ScreenShoot/FlutterRun.png)
+
+
+![Flutter Build](ScreenShoot/HotReloadxRestart.png)
+adapun perbedaan antara Hot Reload dan Hot Restart adala:
+* **Hot Reload (`r`)**  
+  Fitur ini bekerja dengan cara memasukkan perubahan kode terbaru (terutama perbaikan UI atau logika ringan) secara langsung ke dalam Dart Virtual Machine (VM) hanya dalam hitungan milidetik. Keunggulan utamanya adalah tetap mempertahankan *app state* atau kondisi aplikasi saat itu, sehingga data yang sudah diinput pada form, nilai variabel sementara, maupun posisi halaman pengguna tidak akan ter-reset. Oleh karena itu, fitur ini sangat ideal dimanfaatkan untuk iterasi cepat seperti penyesuaian tata letak, eksperimen warna, manipulasi *padding*, atau koreksi minor pada elemen tampilan.
+
+* **Hot Restart (`R`)**  
+  Berbeda dengan Hot Reload, fitur ini bekerja dengan mengompilasi ulang seluruh basis kode aplikasi sekaligus menghancurkan dan mereset ulang seluruh *state* aplikasi dari awal. Proses ini akan mengeksekusi kembali fungsi `main()`, sehingga seluruh variabel, state widget, dan alur navigasi akan kembali ke kondisi semula layaknya aplikasi baru saja dibuka. Fitur ini sangat diperlukan ketika kamu melakukan perubahan yang memengaruhi *initial state* (seperti pada metode `initState`), mengubah struktur variabel global, menambahkan dependensi baru di `pubspec.yaml`, atau saat perubahan kode tidak memicu pembaruan otomatis via Hot Reload.
+
+
 
 ---
 
-## 12. Instalasi APK dan Debugging pada Perangkat Fisik
+## 11. Instalasi APK dan Debugging pada Perangkat Fisik
 
 Setelah APK berhasil dibuat, Flutter mencoba memasang APK ke smartphone Android.
 
@@ -514,7 +494,7 @@ flutter run
 
 **Dokumentasi:**
 
-![ADB Debugging](img/12-adb-debugging.png)
+![ADB Debugging](ScreenShoot/TampilanAndroid.jpeg)
 
 ---
 
@@ -528,12 +508,11 @@ Berikut merupakan ringkasan proses praktikum:
 4. Memasang ekstensi Flutter dan Dart pada Visual Studio Code.
 5. Menginstal Android Studio dan Android SDK.
 6. Menginstal Android SDK Build-Tools, Platform-Tools, Platform SDK, dan CMake.
-7. Menyetujui Android SDK licenses.
-8. Mengatur Java yang digunakan Flutter agar kompatibel dengan Gradle.
-9. Mengatur Environment Variables dan konfigurasi Git `safe.directory`.
-10. Mengaktifkan USB Debugging dan menghubungkan smartphone Android.
-11. Membuat serta melakukan build project Flutter.
-12. Melakukan debugging dan instalasi aplikasi pada perangkat fisik menggunakan ADB.
+7. Mengatur Java yang digunakan Flutter agar kompatibel dengan Gradle.
+8. Mengatur Environment Variables dan konfigurasi Git `safe.directory`.
+9. Mengaktifkan USB Debugging dan menghubungkan smartphone Android.
+10. Membuat serta melakukan build project Flutter.
+11. Melakukan debugging dan instalasi aplikasi pada perangkat fisik menggunakan ADB.
 
 ---
 
