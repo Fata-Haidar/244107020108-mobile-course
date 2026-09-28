@@ -1,4 +1,4 @@
-name: project_minggu4
+name: app_mahasiswa
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -30,14 +30,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  go_router: ^14.2.7
-    
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  audioplayers: ^6.1.0
-  
+  http: ^1.6.0
+  dio: ^5.11.1
+  flutter_riverpod: ^3.3.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -59,13 +59,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-  assets:
-    - img/moon.jpeg
-    - mp3/moon.mp3
-    - mp3/moon_fixed.mp3
-    - mp3/TM.mp3
-    - img/TM.jpeg
-
 
   # To add assets to your application, add an assets section, like this:
   # assets:

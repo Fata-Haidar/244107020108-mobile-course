@@ -8,6 +8,10 @@ void main() {
   runApp(const FataHaidarAly());
 }
 
+// ============================================================
+// APLIKASI UTAMA - STATELESS WIDGET
+// ============================================================
+
 class FataHaidarAly extends StatelessWidget {
   const FataHaidarAly({super.key});
 
@@ -17,100 +21,6 @@ class FataHaidarAly extends StatelessWidget {
       nama: 'Fata Haidar Aly',
       umur: 21,
       kelas: 'TI-3C',
-    );
-
-    final lagu = Lagu(
-      judul: 'Moon',
-      singer: 'Baby Monster',
-
-      // IMAGE
-      foto: 'img/moon.jpeg',
-
-      // AUDIO
-      // FILE ASLINYA:
-      // assets/mp3/moon_fixed.mp3
-      musik: 'mp3/moon_fixed.mp3',
-
-      // LIRIK
-      lirik: '''
-I'm the moon, 보름달 뜨는 밤, on the loose
-Zalabim, zalabam, zalaboom
-I shine so bright in the gloom
-I'm the moon, I'm the moon, I'm the moon
-
-Fog thickens, night vision
-Where we gonna end up is unwritten
-Grave digger, go figure
-But if you're killin' my mood, good riddance
-
-Ice in my veins, you're gonna need to keep up
-With the pace, 더 빨리 더 높이
-When you, when you, when you at the crack of dawn
-You keep on ravin' on, you keep on ravin' on, uh
-
-까만 밤 빛이나 진짜가 나타나
-세상을 불태워라 (baby, do you see me now?)
-거울아, 거울아 말해봐, 알잖아
-In your heart, leave a mark
-
-I'm the moon, 보름달 뜨는 밤, on the loose
-Zalabim, zalabam, zalaboom
-I'm the queen of the tide and the youth
-I'm the moon, I'm the moon, I'm the moon
-
-I'm the moon, 보름달 뜨는 밤 on the loose (moon, moon)
-Zalabim, zalabam, zalaboom (moon, moon)
-I'm the queen of the tide and the youth (moon, moon)
-I'm the moon, I'm the moon, I'm the moon (moon, moon)
-
-Charismatic, energetic
-It's a habit, oh, she stuntin', she stuntin'
-
-I'm in a spaceship coupe, we 'bout to take off (ooh)
-Leave 'em in the dust, yeah, see you later (yeah)
-Outta this world, I'm off the radar (radar)
-You wish on a star (star) that you had these bars
-
-I, whoosh (uh), gettin' that, ah, when we go strut in like, whoa (mm)
-Settin' on hot, that's what we got, that's how we bakin' that dough (yeah)
-Lock and we load, shoot for the stars (whoo), we in the sky, raisin' the bar
-Eyes on the prize, shinin' my light, ready, get, set, SOS when I flex
-
-까만 밤 빛이나 진짜가 나타나
-세상을 불태워라 (baby, do you see me now?)
-거울아, 거울아 말해봐, 알잖아
-In your heart, leave a mark
-
-I'm the moon, 보름달 뜨는 밤, on the loose
-Zalabim, zalabam, zalaboom
-I'm the queen of the tide and the youth
-I'm the moon, I'm the moon, I'm the moon
-
-I'm the moon, 보름달 뜨는 밤 on the loose (moon, moon)
-Zalabim, zalabam, zalaboom (moon, moon)
-I'm the queen of the tide and the youth (moon, moon)
-I'm the moon, I'm the moon, I'm the moon (moon, moon)
-
-하늘을 봐, we gonna shine bright
-내 길을 가, baby, it's our time
-If you wanna ride, if you wanna ride
-If you wanna ride, if you wanna ride, let's ride
-
-Give 'em all in, give 'em all out, give 'em all a show (ride, let's ride)
-Give 'em all in, give 'em all out, give 'em all that, whoa
-Baby, I'ma glow, it's about to blow
-They don't even know
-
-Outta this world, we be takin' off, get in (moon, moon)
-Look at me, I'ma need your attention (moon, moon)
-Hut, one, two, hut, one, two, three (moon, moon)
-All eyes, all eyes on me (moon, moon)
-
-Outta this world, we be takin' off, get in (moon, moon)
-Look at me, I'ma need your attention (moon, moon)
-Hut, one, two, hut, one, two, three (moon, moon)
-All eyes, all eyes on me (moon, moon, moon)
-    ''',
     );
 
     return MaterialApp(
@@ -129,33 +39,26 @@ All eyes, all eyes on me (moon, moon, moon)
 
       home: HomePage(
         mahasiswa: mahasiswa,
-        lagu: lagu,
       ),
     );
   }
 }
 
 // ============================================================
-// HOME PAGE
+// HOME PAGE - STATEFUL WIDGET
 // ============================================================
 
 class HomePage extends StatefulWidget {
   final Mahasiswa mahasiswa;
-  final Lagu lagu;
 
   const HomePage({
     super.key,
     required this.mahasiswa,
-    required this.lagu,
   });
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
-
-// ============================================================
-// STATE WIDGET
-// ============================================================
 
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
@@ -166,21 +69,33 @@ class _HomePageState extends State<HomePage>
   final AudioPlayer audioPlayer = AudioPlayer();
 
   // ==========================================================
-  // STATE
+  // SEARCH
   // ==========================================================
 
-  bool isPlaying = false;
+  final TextEditingController searchController =
+      TextEditingController();
+
+  // ==========================================================
+  // INDEX LAGU
+  // ==========================================================
+
+  int currentIndex = 0;
+
+  // ==========================================================
+  // STATE AUDIO
+  // ==========================================================
+
   bool sudahDiputar = false;
 
   Duration duration = Duration.zero;
   Duration position = Duration.zero;
 
   // ==========================================================
-  // SEARCH
+  // ERROR STATE
   // ==========================================================
 
-  final TextEditingController searchController =
-      TextEditingController();
+  bool audioError = false;
+  String errorMessage = '';
 
   // ==========================================================
   // ANIMATION
@@ -189,10 +104,10 @@ class _HomePageState extends State<HomePage>
   late AnimationController animationController;
 
   // ==========================================================
-  // ASYNC
+  // LAGU YANG SEDANG AKTIF
   // ==========================================================
 
-  late Future<String> statusAudio;
+  Lagu get laguAktif => daftarLagu[currentIndex];
 
   @override
   void initState() {
@@ -208,13 +123,7 @@ class _HomePageState extends State<HomePage>
     );
 
     // ========================================================
-    // ASYNC
-    // ========================================================
-
-    statusAudio = loadAudio();
-
-    // ========================================================
-    // DURATION AUDIO
+    // DURASI AUDIO
     // ========================================================
 
     audioPlayer.onDurationChanged.listen((newDuration) {
@@ -226,7 +135,7 @@ class _HomePageState extends State<HomePage>
     });
 
     // ========================================================
-    // POSITION AUDIO
+    // POSISI AUDIO
     // ========================================================
 
     audioPlayer.onPositionChanged.listen((newPosition) {
@@ -245,7 +154,6 @@ class _HomePageState extends State<HomePage>
       if (!mounted) return;
 
       setState(() {
-        isPlaying = false;
         sudahDiputar = false;
         position = Duration.zero;
       });
@@ -256,31 +164,17 @@ class _HomePageState extends State<HomePage>
   }
 
   // ==========================================================
-  // ASYNC FUNCTION
-  // ==========================================================
-
-  Future<String> loadAudio() async {
-    await Future.delayed(
-      const Duration(seconds: 1),
-    );
-
-    return 'Audio siap diputar';
-  }
-
-  // ==========================================================
   // PLAY MUSIC
   // ==========================================================
 
   Future<void> playMusic() async {
     try {
       if (sudahDiputar) {
-        // LANJUTKAN AUDIO
         await audioPlayer.resume();
       } else {
-        // PLAY DARI ASSET
         await audioPlayer.play(
           AssetSource(
-            widget.lagu.musik,
+            laguAktif.musik,
             mimeType: 'audio/mpeg',
           ),
         );
@@ -291,22 +185,31 @@ class _HomePageState extends State<HomePage>
       if (!mounted) return;
 
       setState(() {
-        isPlaying = true;
+        audioError = false;
+        errorMessage = '';
       });
 
-      // MULAI ANIMASI
+      // COVER BERPUTAR
       animationController.repeat();
 
       showPesan(
-        'Memutar ${widget.lagu.judul}',
+        'Memutar ${laguAktif.judul}',
       );
     } catch (e) {
       debugPrint('ERROR AUDIO: $e');
 
       if (!mounted) return;
 
+      setState(() {
+        audioError = true;
+        errorMessage = 'Audio gagal diputar';
+        sudahDiputar = false;
+      });
+
+      animationController.stop();
+
       showPesan(
-        'Musik gagal diputar',
+        'Audio gagal diputar',
       );
     }
   }
@@ -318,13 +221,6 @@ class _HomePageState extends State<HomePage>
   Future<void> pauseMusic() async {
     await audioPlayer.pause();
 
-    if (!mounted) return;
-
-    setState(() {
-      isPlaying = false;
-    });
-
-    // STOP ANIMASI
     animationController.stop();
 
     showPesan(
@@ -333,10 +229,74 @@ class _HomePageState extends State<HomePage>
   }
 
   // ==========================================================
-  // SEARCH ACTION
+  // GANTI LAGU
   // ==========================================================
 
-  void searchLagu(String keyword) {
+  Future<void> gantiLagu(int index) async {
+    await audioPlayer.stop();
+
+    if (!mounted) return;
+
+    animationController.stop();
+    animationController.reset();
+
+    setState(() {
+      currentIndex = index;
+
+      sudahDiputar = false;
+
+      duration = Duration.zero;
+      position = Duration.zero;
+
+      audioError = false;
+      errorMessage = '';
+    });
+
+    // LANGSUNG PLAY LAGU BARU
+    await playMusic();
+  }
+
+  // ==========================================================
+  // NEXT SONG
+  // ==========================================================
+
+  Future<void> nextSong() async {
+    int indexBaru;
+
+    if (currentIndex < daftarLagu.length - 1) {
+      indexBaru = currentIndex + 1;
+    } else {
+      // KALAU SUDAH LAGU TERAKHIR,
+      // BALIK KE LAGU PERTAMA
+      indexBaru = 0;
+    }
+
+    await gantiLagu(indexBaru);
+  }
+
+  // ==========================================================
+  // PREVIOUS SONG
+  // ==========================================================
+
+  Future<void> previousSong() async {
+    int indexBaru;
+
+    if (currentIndex > 0) {
+      indexBaru = currentIndex - 1;
+    } else {
+      // KALAU DI LAGU PERTAMA,
+      // PINDAH KE LAGU TERAKHIR
+      indexBaru = daftarLagu.length - 1;
+    }
+
+    await gantiLagu(indexBaru);
+  }
+
+  // ==========================================================
+  // SEARCH LAGU
+  // ==========================================================
+
+  Future<void> searchLagu(String keyword) async {
     String input = keyword.trim().toLowerCase();
 
     if (input.isEmpty) {
@@ -347,13 +307,27 @@ class _HomePageState extends State<HomePage>
       return;
     }
 
-    String judul = widget.lagu.judul.toLowerCase();
-    String singer = widget.lagu.singer.toLowerCase();
+    int indexDitemukan = daftarLagu.indexWhere(
+      (lagu) {
+        return lagu.judul
+                .toLowerCase()
+                .contains(input) ||
+            lagu.singer
+                .toLowerCase()
+                .contains(input);
+      },
+    );
 
-    if (judul.contains(input) || singer.contains(input)) {
+    if (indexDitemukan != -1) {
       showPesan(
-        '${widget.lagu.judul} - ${widget.lagu.singer} ditemukan',
+        '${daftarLagu[indexDitemukan].judul} ditemukan',
       );
+
+      await gantiLagu(
+        indexDitemukan,
+      );
+
+      searchController.clear();
     } else {
       showPesan(
         'Lagu "$keyword" tidak ditemukan',
@@ -377,7 +351,7 @@ class _HomePageState extends State<HomePage>
   }
 
   // ==========================================================
-  // DIALOG / FEEDBACK WIDGET
+  // DIALOG FEEDBACK
   // ==========================================================
 
   void showFeedbackDialog() {
@@ -387,36 +361,43 @@ class _HomePageState extends State<HomePage>
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setDialogState) {
+          builder: (
+            context,
+            setDialogState,
+          ) {
             return AlertDialog(
               title: const Text(
                 'Feedback',
               ),
 
               content: Column(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisSize:
+                    MainAxisSize.min,
+
                 children: [
                   const Text(
                     'Bagaimana aplikasi musik ini?',
                   ),
 
-                  const SizedBox(height: 20),
-
-                  // =================================================
-                  // RATING BINTANG
-                  // =================================================
+                  const SizedBox(
+                    height: 20,
+                  ),
 
                   Row(
                     mainAxisAlignment:
                         MainAxisAlignment.center,
+
                     children: List.generate(
                       5,
                       (index) {
                         return IconButton(
                           onPressed: () {
-                            setDialogState(() {
-                              rating = index + 1;
-                            });
+                            setDialogState(
+                              () {
+                                rating =
+                                    index + 1;
+                              },
+                            );
                           },
 
                           icon: Icon(
@@ -441,6 +422,7 @@ class _HomePageState extends State<HomePage>
                       dialogContext,
                     );
                   },
+
                   child: const Text(
                     'Batal',
                   ),
@@ -458,6 +440,7 @@ class _HomePageState extends State<HomePage>
                             'Terima kasih! Rating $rating/5',
                           );
                         },
+
                   child: const Text(
                     'Kirim',
                   ),
@@ -474,7 +457,9 @@ class _HomePageState extends State<HomePage>
   // FORMAT DURASI
   // ==========================================================
 
-  String formatDuration(Duration value) {
+  String formatDuration(
+    Duration value,
+  ) {
     String menit = value.inMinutes
         .remainder(60)
         .toString()
@@ -486,6 +471,34 @@ class _HomePageState extends State<HomePage>
         .padLeft(2, '0');
 
     return '$menit:$detik';
+  }
+
+  // ==========================================================
+  // BUKA PLAYLIST DENGAN ROUTE
+  // ==========================================================
+
+  Future<void> bukaPlaylist() async {
+    Navigator.pop(context);
+
+    final int? indexPilihan =
+        await Navigator.push<int>(
+      context,
+
+      MaterialPageRoute(
+        builder: (context) {
+          return PlaylistPage(
+            currentIndex:
+                currentIndex,
+          );
+        },
+      ),
+    );
+
+    if (indexPilihan != null) {
+      await gantiLagu(
+        indexPilihan,
+      );
+    }
   }
 
   @override
@@ -519,14 +532,16 @@ class _HomePageState extends State<HomePage>
     double currentPosition =
         position.inMilliseconds.toDouble();
 
-    if (currentPosition > maxDuration) {
-      currentPosition = maxDuration;
+    if (currentPosition >
+        maxDuration) {
+      currentPosition =
+          maxDuration;
     }
 
     return Scaffold(
-      // ========================================================
+      // ======================================================
       // APP BAR
-      // ========================================================
+      // ======================================================
 
       appBar: AppBar(
         backgroundColor:
@@ -537,22 +552,22 @@ class _HomePageState extends State<HomePage>
           28,
         ),
 
-        foregroundColor: Colors.white,
+        foregroundColor:
+            Colors.white,
 
         centerTitle: true,
 
         title: Text(
-          '${widget.lagu.judul} - ${widget.lagu.singer}',
+          '${laguAktif.judul} - ${laguAktif.singer}',
+
+          overflow:
+              TextOverflow.ellipsis,
         ),
 
-        // ======================================================
-        // APPBAR ACTIONS
-        // ======================================================
-
         actions: [
-          // ====================================================
+          // ==================================================
           // SEARCH BOX
-          // ====================================================
+          // ==================================================
 
           SizedBox(
             width: 200,
@@ -564,36 +579,41 @@ class _HomePageState extends State<HomePage>
               ),
 
               child: TextField(
-                controller: searchController,
+                controller:
+                    searchController,
 
                 style: const TextStyle(
                   color: Colors.white,
                 ),
 
-                decoration: InputDecoration(
-                  hintText: 'Cari lagu...',
+                decoration:
+                    InputDecoration(
+                  hintText:
+                      'Cari lagu...',
 
                   hintStyle:
                       const TextStyle(
-                    color: Colors.white70,
+                    color:
+                        Colors.white70,
                   ),
 
-                  prefixIcon: const Icon(
+                  prefixIcon:
+                      const Icon(
                     Icons.search,
-                    color: Colors.white,
+                    color:
+                        Colors.white,
                   ),
-
-                  // =============================================
-                  // FILLED SEARCH BOX
-                  // =============================================
 
                   filled: true,
 
                   fillColor: Colors.white
-                      .withOpacity(0.15),
+                      .withOpacity(
+                    0.15,
+                  ),
 
                   contentPadding:
-                      const EdgeInsets.symmetric(
+                      const EdgeInsets
+                          .symmetric(
                     horizontal: 12,
                     vertical: 0,
                   ),
@@ -601,47 +621,46 @@ class _HomePageState extends State<HomePage>
                   enabledBorder:
                       OutlineInputBorder(
                     borderRadius:
-                        BorderRadius.circular(
+                        BorderRadius
+                            .circular(
                       15,
                     ),
 
                     borderSide:
                         const BorderSide(
-                      color: Colors.white,
+                      color:
+                          Colors.white,
                     ),
                   ),
 
                   focusedBorder:
                       OutlineInputBorder(
                     borderRadius:
-                        BorderRadius.circular(
+                        BorderRadius
+                            .circular(
                       15,
                     ),
 
                     borderSide:
                         const BorderSide(
-                      color: Colors.white,
+                      color:
+                          Colors.white,
                       width: 2,
                     ),
                   ),
                 ),
 
-                // =================================================
-                // ACTION SEARCH
-                // ENTER
-                // =================================================
-
-                onSubmitted: searchLagu,
+                onSubmitted:
+                    searchLagu,
               ),
             ),
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(
+            width: 10,
+          ),
 
-          // ====================================================
-          // FEEDBACK BUTTON
-          // ====================================================
-
+          // FEEDBACK
           IconButton(
             tooltip: 'Feedback',
 
@@ -653,27 +672,26 @@ class _HomePageState extends State<HomePage>
             ),
           ),
 
-          const SizedBox(width: 10),
+          const SizedBox(
+            width: 10,
+          ),
         ],
       ),
 
-      // ========================================================
+      // ======================================================
       // DRAWER
-      // ========================================================
+      // ======================================================
 
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
 
           children: [
-            // ==================================================
-            // DRAWER HEADER
-            // ==================================================
-
             DrawerHeader(
               decoration:
                   const BoxDecoration(
-                color: Color.fromARGB(
+                color:
+                    Color.fromARGB(
                   255,
                   155,
                   19,
@@ -683,23 +701,28 @@ class _HomePageState extends State<HomePage>
 
               child: Column(
                 crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                    CrossAxisAlignment
+                        .start,
 
                 mainAxisAlignment:
-                    MainAxisAlignment.end,
+                    MainAxisAlignment
+                        .end,
 
                 children: [
                   Text(
-                    widget.mahasiswa.nama,
+                    widget
+                        .mahasiswa.nama,
 
                     style:
                         const TextStyle(
-                      color: Colors.white,
+                      color:
+                          Colors.white,
 
                       fontSize: 20,
 
                       fontWeight:
-                          FontWeight.bold,
+                          FontWeight
+                              .bold,
                     ),
                   ),
 
@@ -708,24 +731,22 @@ class _HomePageState extends State<HomePage>
                   ),
 
                   Text(
-                    widget.mahasiswa.kelas,
+                    widget
+                        .mahasiswa.kelas,
 
                     style:
                         const TextStyle(
-                      color: Colors.white70,
+                      color:
+                          Colors.white70,
                     ),
                   ),
                 ],
               ),
             ),
 
-            // ==================================================
             // HOME
-            // ==================================================
-
             ListTile(
-              leading:
-                  const Icon(
+              leading: const Icon(
                 Icons.home,
               ),
 
@@ -741,14 +762,9 @@ class _HomePageState extends State<HomePage>
               },
             ),
 
-            // ==================================================
             // PLAYLIST
-            // ACTION + ROUTE
-            // ==================================================
-
             ListTile(
-              leading:
-                  const Icon(
+              leading: const Icon(
                 Icons.music_note,
               ),
 
@@ -757,38 +773,13 @@ class _HomePageState extends State<HomePage>
                 'Playlist',
               ),
 
-              onTap: () {
-                // TUTUP DRAWER
-                Navigator.pop(
-                  context,
-                );
-
-                // ===============================================
-                // ROUTE / NAVIGATION
-                // ===============================================
-
-                Navigator.push(
-                  context,
-
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return PlaylistPage(
-                        lagu:
-                            widget.lagu,
-                      );
-                    },
-                  ),
-                );
-              },
+              onTap:
+                  bukaPlaylist,
             ),
 
-            // ==================================================
             // FEEDBACK
-            // ==================================================
-
             ListTile(
-              leading:
-                  const Icon(
+              leading: const Icon(
                 Icons.feedback,
               ),
 
@@ -809,11 +800,12 @@ class _HomePageState extends State<HomePage>
         ),
       ),
 
-      // ========================================================
+      // ======================================================
       // BODY
-      // ========================================================
+      // ======================================================
 
-      body: SingleChildScrollView(
+      body:
+          SingleChildScrollView(
         padding:
             const EdgeInsets.all(
           20,
@@ -821,84 +813,102 @@ class _HomePageState extends State<HomePage>
 
         child: Column(
           crossAxisAlignment:
-              CrossAxisAlignment.start,
+              CrossAxisAlignment
+                  .start,
 
           children: [
-            // ==================================================
-            // ASYNC WIDGET
-            // FUTURE BUILDER
-            // ==================================================
+            // =================================================
+            // ERROR SIGN
+            // =================================================
 
-            FutureBuilder<String>(
-              future: statusAudio,
+            if (audioError)
+              Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets
+                          .symmetric(
+                    horizontal: 15,
+                    vertical: 10,
+                  ),
 
-              builder: (
-                context,
-                snapshot,
-              ) {
-                if (snapshot
-                        .connectionState ==
-                    ConnectionState
-                        .waiting) {
-                  return const Center(
-                    child: Padding(
-                      padding:
-                          EdgeInsets.all(
-                        20,
-                      ),
+                  decoration:
+                      BoxDecoration(
+                    color:
+                        Colors.red,
 
-                      child:
-                          CircularProgressIndicator(),
-                    ),
-                  );
-                }
-
-                return Center(
-                  child: Chip(
-                    avatar: const Icon(
-                      Icons.check_circle,
-
-                      color:
-                          Colors.green,
-                    ),
-
-                    label: Text(
-                      snapshot.data ??
-                          'Audio siap',
+                    borderRadius:
+                        BorderRadius
+                            .circular(
+                      15,
                     ),
                   ),
-                );
-              },
-            ),
 
-            const SizedBox(
-              height: 20,
-            ),
+                  child: Row(
+                    mainAxisSize:
+                        MainAxisSize
+                            .min,
 
-            // ==================================================
-            // ANIMATION WIDGET
-            // COVER BERPUTAR
-            // ==================================================
+                    children: [
+                      const Icon(
+                        Icons.error,
+
+                        color:
+                            Colors.white,
+                      ),
+
+                      const SizedBox(
+                        width: 8,
+                      ),
+
+                      Text(
+                        errorMessage,
+
+                        style:
+                            const TextStyle(
+                          color: Colors
+                              .white,
+
+                          fontWeight:
+                              FontWeight
+                                  .bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            if (audioError)
+              const SizedBox(
+                height: 20,
+              ),
+
+            // =================================================
+            // GAMBAR + ANIMATION
+            // =================================================
 
             Center(
-              child: RotationTransition(
+              child:
+                  RotationTransition(
                 turns:
                     animationController,
 
                 child: ClipRRect(
                   borderRadius:
-                      BorderRadius.circular(
+                      BorderRadius
+                          .circular(
                     20,
                   ),
 
-                  child: Image.asset(
-                    widget.lagu.foto,
+                  child:
+                      Image.asset(
+                    laguAktif.foto,
 
                     width: 300,
-
                     height: 300,
 
-                    fit: BoxFit.cover,
+                    fit:
+                        BoxFit.cover,
                   ),
                 ),
               ),
@@ -908,16 +918,17 @@ class _HomePageState extends State<HomePage>
               height: 30,
             ),
 
-            // ==================================================
-            // JUDUL LAGU
-            // ==================================================
+            // =================================================
+            // JUDUL
+            // =================================================
 
             Row(
               children: [
                 const Icon(
                   Icons.music_note,
 
-                  color: Colors.red,
+                  color:
+                      Colors.red,
 
                   size: 30,
                 ),
@@ -928,15 +939,15 @@ class _HomePageState extends State<HomePage>
 
                 Expanded(
                   child: Text(
-                    '${widget.lagu.judul} - '
-                    '${widget.lagu.singer}',
+                    '${laguAktif.judul} - ${laguAktif.singer}',
 
                     style:
                         const TextStyle(
                       fontSize: 24,
 
                       fontWeight:
-                          FontWeight.bold,
+                          FontWeight
+                              .bold,
                     ),
                   ),
                 ),
@@ -947,10 +958,9 @@ class _HomePageState extends State<HomePage>
               height: 20,
             ),
 
-            // ==================================================
-            // STATE WIDGET
-            // SLIDER AUDIO
-            // ==================================================
+            // =================================================
+            // SLIDER
+            // =================================================
 
             Slider(
               min: 0,
@@ -968,15 +978,16 @@ class _HomePageState extends State<HomePage>
                       value.toInt(),
                 );
 
-                await audioPlayer.seek(
+                await audioPlayer
+                    .seek(
                   posisiBaru,
                 );
               },
             ),
 
-            // ==================================================
+            // =================================================
             // DURASI
-            // ==================================================
+            // =================================================
 
             Row(
               mainAxisAlignment:
@@ -1002,9 +1013,10 @@ class _HomePageState extends State<HomePage>
               height: 25,
             ),
 
-            // ==================================================
-            // LYRICS CARD
-            // ==================================================
+            // =================================================
+            // LIRIK
+            // OTOMATIS GANTI SESUAI LAGU
+            // =================================================
 
             Card(
               elevation: 5,
@@ -1012,7 +1024,8 @@ class _HomePageState extends State<HomePage>
               shape:
                   RoundedRectangleBorder(
                 borderRadius:
-                    BorderRadius.circular(
+                    BorderRadius
+                        .circular(
                   20,
                 ),
               ),
@@ -1061,7 +1074,7 @@ class _HomePageState extends State<HomePage>
                     const Divider(),
 
                     Text(
-                      widget.lagu.lirik,
+                      laguAktif.lirik,
 
                       style:
                           const TextStyle(
@@ -1078,9 +1091,9 @@ class _HomePageState extends State<HomePage>
         ),
       ),
 
-      // ========================================================
+      // ======================================================
       // BOTTOM MUSIC PLAYER
-      // ========================================================
+      // ======================================================
 
       bottomNavigationBar:
           BottomAppBar(
@@ -1097,16 +1110,14 @@ class _HomePageState extends State<HomePage>
 
           child: Row(
             children: [
-              // =================================================
               // DATA MAHASISWA
-              // =================================================
-
               Expanded(
                 flex: 2,
 
                 child: Padding(
                   padding:
-                      const EdgeInsets.only(
+                      const EdgeInsets
+                          .only(
                     left: 20,
                   ),
 
@@ -1125,9 +1136,9 @@ class _HomePageState extends State<HomePage>
                 ),
               ),
 
-              // =================================================
+              // ===============================================
               // PLAYER BUTTONS
-              // =================================================
+              // ===============================================
 
               Expanded(
                 flex: 2,
@@ -1138,9 +1149,9 @@ class _HomePageState extends State<HomePage>
                           .center,
 
                   children: [
-                    // =============================================
+                    // =========================================
                     // PREVIOUS
-                    // =============================================
+                    // =========================================
 
                     IconButton(
                       tooltip:
@@ -1157,53 +1168,68 @@ class _HomePageState extends State<HomePage>
                         size: 32,
                       ),
 
-                      onPressed: () {
-                        showPesan(
-                          'Tidak ada lagu sebelumnya',
+                      onPressed:
+                          previousSong,
+                    ),
+
+                    // =========================================
+                    // PLAY / PAUSE
+                    //
+                    // STREAMBUILDER = ASYNC WIDGET
+                    // =========================================
+
+                    StreamBuilder<
+                        PlayerState>(
+                      stream: audioPlayer
+                          .onPlayerStateChanged,
+
+                      builder: (
+                        context,
+                        snapshot,
+                      ) {
+                        bool playing =
+                            snapshot.data ==
+                                PlayerState
+                                    .playing;
+
+                        return IconButton(
+                          tooltip:
+                              playing
+                                  ? 'Pause'
+                                  : 'Play',
+
+                          icon: Icon(
+                            playing
+                                ? Icons
+                                    .pause_circle
+                                : Icons
+                                    .play_circle,
+
+                            color:
+                                Colors.white,
+
+                            size: 45,
+                          ),
+
+                          onPressed:
+                              playing
+                                  ? pauseMusic
+                                  : playMusic,
                         );
                       },
                     ),
 
-                    // =============================================
-                    // PLAY / PAUSE
-                    // STATE ACTION
-                    // =============================================
-
-                    IconButton(
-                      tooltip:
-                          isPlaying
-                              ? 'Pause'
-                              : 'Play',
-
-                      icon: Icon(
-                        isPlaying
-                            ? Icons
-                                .pause_circle
-                            : Icons
-                                .play_circle,
-
-                        color:
-                            Colors.white,
-
-                        size: 45,
-                      ),
-
-                      onPressed:
-                          isPlaying
-                              ? pauseMusic
-                              : playMusic,
-                    ),
-
-                    // =============================================
+                    // =========================================
                     // NEXT
-                    // =============================================
+                    // =========================================
 
                     IconButton(
                       tooltip: 'Next',
 
                       icon:
                           const Icon(
-                        Icons.skip_next,
+                        Icons
+                            .skip_next,
 
                         color:
                             Colors.white,
@@ -1211,11 +1237,8 @@ class _HomePageState extends State<HomePage>
                         size: 32,
                       ),
 
-                      onPressed: () {
-                        showPesan(
-                          'Tidak ada lagu berikutnya',
-                        );
-                      },
+                      onPressed:
+                          nextSong,
                     ),
                   ],
                 ),
@@ -1229,24 +1252,26 @@ class _HomePageState extends State<HomePage>
 }
 
 // ============================================================
-// PLAYLIST PAGE
-// ROUTE PAGE
+// PLAYLIST PAGE - STATELESS WIDGET
 // ============================================================
 
-class PlaylistPage extends StatelessWidget {
-  final Lagu lagu;
+class PlaylistPage
+    extends StatelessWidget {
+  final int currentIndex;
 
   const PlaylistPage({
     super.key,
-    required this.lagu,
+    required this.currentIndex,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Scaffold(
-      // ========================================================
-      // APPBAR
-      // ========================================================
+      // ======================================================
+      // APP BAR
+      // ======================================================
 
       appBar: AppBar(
         backgroundColor:
@@ -1266,81 +1291,90 @@ class PlaylistPage extends StatelessWidget {
         ),
       ),
 
-      // ========================================================
-      // BODY
-      // ========================================================
+      // ======================================================
+      // LIST 2 LAGU
+      // ======================================================
 
-      body: ListView(
+      body: ListView.builder(
         padding:
             const EdgeInsets.all(
           20,
         ),
 
-        children: [
-          Card(
-            child: ListTile(
-              // =================================================
-              // GAMBAR
-              // =================================================
+        itemCount:
+            daftarLagu.length,
 
+        itemBuilder: (
+          context,
+          index,
+        ) {
+          final lagu =
+              daftarLagu[index];
+
+          bool aktif =
+              index ==
+                  currentIndex;
+
+          return Card(
+            child: ListTile(
+              // GAMBAR
               leading: ClipRRect(
                 borderRadius:
-                    BorderRadius.circular(
+                    BorderRadius
+                        .circular(
                   8,
                 ),
 
-                child: Image.asset(
+                child:
+                    Image.asset(
                   lagu.foto,
 
                   width: 60,
-
                   height: 60,
 
-                  fit: BoxFit.cover,
+                  fit:
+                      BoxFit.cover,
                 ),
               ),
 
-              // =================================================
               // JUDUL
-              // =================================================
-
-              title:
-                  Text(
+              title: Text(
                 lagu.judul,
+
+                style: TextStyle(
+                  fontWeight:
+                      aktif
+                          ? FontWeight
+                              .bold
+                          : FontWeight
+                              .normal,
+                ),
               ),
 
-              // =================================================
-              // PENYANYI
-              // =================================================
-
-              subtitle:
-                  Text(
+              // SINGER
+              subtitle: Text(
                 lagu.singer,
               ),
 
-              trailing:
-                  const Icon(
-                Icons.play_arrow,
+              // ICON
+              trailing: Icon(
+                aktif
+                    ? Icons
+                        .volume_up
+                    : Icons
+                        .play_arrow,
               ),
 
-              // =================================================
-              // ACTION
-              // =================================================
-
+              // PILIH LAGU
               onTap: () {
-                ScaffoldMessenger
-                        .of(context)
-                    .showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${lagu.judul} dipilih',
-                    ),
-                  ),
+                Navigator.pop(
+                  context,
+                  index,
                 );
               },
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
