@@ -24,12 +24,12 @@ class FataHaidarAly extends StatelessWidget {
             const Positioned(
               top: 20,
               left: 20,
-              child: Text('Im the moon, boreumdal tteuneun bam on the loose\nZa-la-bim,za-la-bam, za-la-boom\nI shine so bright in the gloom\n Im the moon, Im the moon, Im the moon', style: const TextStyle(fontSize: 24)),
+              child: Text('Im the moon, boreumdal tteuneun bam on the loose\nZa-la-bim,za-la-bam, za-la-boom\nI shine so bright in the gloom\n Im the moon, Im the moon, Im the moon', style: TextStyle(fontSize: 24)),
             ),
            const Positioned(
               bottom: 20,
               right: 20,
-              child: Text('Fog thickens, night vision\nWhere we gonna end up is unwritten\nGrave digger, go figure\nBut if youre killing my mood, good riddance\nIce in my veins\nYoure gonna need to keep up with the pace,\n deo ppalli deo nopi\nWhen you, when you, when you at the crack of dawn\nYou keep on raving on, you keep on raving on, uh', style: const TextStyle(fontSize: 24)),
+              child: Text('Fog thickens, night vision\nWhere we gonna end up is unwritten\nGrave digger, go figure\nBut if youre killing my mood, good riddance\nIce in my veins\nYoure gonna need to keep up with the pace,\n deo ppalli deo nopi\nWhen you, when you, when you at the crack of dawn\nYou keep on raving on, you keep on raving on, uh', style: TextStyle(fontSize: 24)),
             ), 
             const Positioned(
               bottom: 20,
