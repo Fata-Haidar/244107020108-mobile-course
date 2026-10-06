@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-import '../data/local/note.dart';
 import '../data/sync.dart';
 import '../providers/note_providers.dart';
 import '../widgets/note_form_dialog.dart';
@@ -14,31 +14,19 @@ class NotesPage extends ConsumerWidget {
 
   Future<void> _openForm(
     BuildContext context,
-    WidgetRef ref, [
-    Note? note,
-  ]) async {
+    WidgetRef ref,
+  ) async {
     final result = await showDialog<NoteFormResult>(
       context: context,
-      builder: (_) => NoteFormDialog(initial: note),
+      builder: (_) => const NoteFormDialog(),
     );
 
     if (result == null) return;
 
-    final actions = ref.read(noteActionsProvider);
-
-    if (note == null) {
-      await actions.add(
-        result.title,
-        result.body,
-      );
-    } else {
-      await actions.update(
-        note.copyWith(
-          title: result.title,
-          body: result.body,
-        ),
-      );
-    }
+    await ref.read(noteActionsProvider).add(
+          result.title,
+          result.body,
+        );
   }
 
   @override
@@ -50,7 +38,6 @@ class NotesPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Offline Notes'),
         actions: [
-          // Badge jumlah catatan yang belum tersinkron
           Tooltip(
             message: 'Catatan belum tersinkron',
             child: Badge(
@@ -62,7 +49,6 @@ class NotesPage extends ConsumerWidget {
             ),
           ),
 
-          // Buka halaman Posts
           IconButton(
             tooltip: 'Posts (cache-first)',
             icon: const Icon(
@@ -77,7 +63,6 @@ class NotesPage extends ConsumerWidget {
             },
           ),
 
-          // Sinkronisasi catatan
           IconButton(
             tooltip: 'Sinkronkan',
             icon: const Icon(Icons.sync),
@@ -109,7 +94,6 @@ class NotesPage extends ConsumerWidget {
             },
           ),
 
-          // Buka halaman pengaturan
           IconButton(
             tooltip: 'Pengaturan',
             icon: const Icon(
@@ -128,12 +112,10 @@ class NotesPage extends ConsumerWidget {
       ),
 
       body: notesAsync.when(
-        // STATE LOADING
         loading: () => const Center(
           child: CircularProgressIndicator(),
         ),
 
-        // STATE ERROR
         error: (e, _) => _ErrorView(
           message: 'Gagal membaca database: $e',
           onRetry: () {
@@ -141,14 +123,11 @@ class NotesPage extends ConsumerWidget {
           },
         ),
 
-        // STATE DATA
         data: (notes) {
-          // STATE EMPTY
           if (notes.isEmpty) {
             return const _EmptyView();
           }
 
-          // STATE SUCCESS
           return ListView.separated(
             itemCount: notes.length,
             separatorBuilder: (context, index) =>
@@ -156,18 +135,21 @@ class NotesPage extends ConsumerWidget {
             itemBuilder: (context, index) {
               final note = notes[index];
 
-              // Refactoring:
-              // ListTile lama dipindahkan ke NoteTile
               return NoteTile(
                 note: note,
+
+                // KLIK CATATAN -> HALAMAN DETAIL
                 onTap: () {
-                  _openForm(
-                    context,
-                    ref,
-                    note,
+                  if (note.id == null) return;
+
+                  context.push(
+                    '/note/${note.id}',
                   );
                 },
+
                 onDelete: () {
+                  if (note.id == null) return;
+
                   ref
                       .read(noteActionsProvider)
                       .delete(note.id!);
@@ -180,6 +162,7 @@ class NotesPage extends ConsumerWidget {
 
       floatingActionButton:
           FloatingActionButton.extended(
+        // Tombol + tetap untuk tambah catatan
         onPressed: () {
           _openForm(context, ref);
         },
