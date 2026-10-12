@@ -66,7 +66,8 @@ class _HomePageState extends State<HomePage>
   // AUDIO PLAYER
   // ==========================================================
 
-  final AudioPlayer audioPlayer = AudioPlayer();
+  final AudioPlayer audioPlayer = AudioPlayer()
+    ..audioCache = AudioCache(prefix: '');
 
   // ==========================================================
   // SEARCH

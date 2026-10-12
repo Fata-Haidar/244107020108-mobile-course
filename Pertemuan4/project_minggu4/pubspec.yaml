@@ -61,10 +61,9 @@ flutter:
   uses-material-design: true
   assets:
     - img/moon.jpeg
-    - mp3/moon.mp3
-    - mp3/moon_fixed.mp3
     - mp3/TM.mp3
     - img/TM.jpeg
+    - mp3/moon_fixed.mp3
 
 
   # To add assets to your application, add an assets section, like this:
