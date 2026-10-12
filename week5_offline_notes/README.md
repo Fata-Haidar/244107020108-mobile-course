@@ -262,7 +262,7 @@ Setelah mode offline dimatikan, tombol sinkronisasi dapat digunakan kembali.
 
 ### Setelah Sinkronisasi
 
-![Setelah sinkronisasi](screenshots/setelah-sync.jpeg)
+![Setelah sinkronisasi](screenshots/setelaj-sync.jpeg)
 
 Setelah sinkronisasi berhasil, dirty flag dibersihkan dan indikator catatan berubah menjadi sudah tersinkron.
 
