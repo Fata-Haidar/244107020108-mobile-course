@@ -18,7 +18,8 @@ final authStateProvider =
 class AuthNotifier extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final token = await ref.watch(tokenStoreProvider).readAccess();
+    final token = await ref.read(tokenStoreProvider).readAccess();
+
     return token != null && token.isNotEmpty;
   }
 
@@ -26,9 +27,10 @@ class AuthNotifier extends AsyncNotifier<bool> {
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      final session = await ref
-          .read(authRepositoryProvider)
-          .login(email: email, password: password);
+      final session = await ref.read(authRepositoryProvider).login(
+            email: email,
+            password: password,
+          );
 
       await ref.read(tokenStoreProvider).save(
             access: session.access,
@@ -40,8 +42,6 @@ class AuthNotifier extends AsyncNotifier<bool> {
   }
 
   Future<void> logout() async {
-    state = const AsyncLoading();
-
     await ref.read(tokenStoreProvider).clear();
 
     state = const AsyncData(false);
