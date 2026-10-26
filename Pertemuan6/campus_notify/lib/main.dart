@@ -8,96 +8,188 @@ import 'package:go_router/go_router.dart';
 import 'messaging/push_service.dart';
 import 'pages/announcement_page.dart';
 import 'pages/home_page.dart';
+import 'pages/login_page.dart';
+import 'providers/auth_provider.dart';
 import 'routes.dart';
 
-final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.home,
-  routes: [
-    GoRoute(
-      path: AppRoutes.home,
-      builder: (context, state) {
-        return const HomePage();
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.announcement,
-      builder: (context, state) {
-        return AnnouncementPage(
-          id: state.pathParameters['id'] ?? '',
-        );
-      },
-    ),
-  ],
-);
+const String loadingRoute = '/loading';
+
+GoRouter? appRouter;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Inisialisasi Firebase.
   await Firebase.initializeApp();
 
-  // 2. Daftarkan handler background sebelum runApp.
   FirebaseMessaging.onBackgroundMessage(
     firebaseMessagingBackgroundHandler,
   );
 
-  // 3. Minta izin notifikasi.
   await requestNotificationPermission();
 
-  // 4. Inisialisasi notifikasi lokal.
   await initLocalNotifications(
-    onNavigate: (route) {
-      _navigateToNotificationRoute(route);
-    },
+    onNavigate: _navigateToNotificationRoute,
   );
 
-  // 5. Dengarkan pesan foreground dan klik notifikasi background.
   listenForegroundAndOpened(
-    onNavigate: (route) {
-      _navigateToNotificationRoute(route);
-    },
+    onNavigate: _navigateToNotificationRoute,
   );
 
-  // 6. Berlangganan topik pengumuman kampus.
   await subscribeToCampusAnnouncements();
 
-  // 7. Jalankan aplikasi.
   runApp(
     const ProviderScope(
       child: CampusNotifyApp(),
     ),
   );
 
-  // 8. Tangani notifikasi yang membuka aplikasi dari terminated.
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     await handleTerminated(
-      onNavigate: (route) {
-        _navigateToNotificationRoute(route);
-      },
+      onNavigate: _navigateToNotificationRoute,
     );
   });
 }
 
-/// Buka halaman tujuan tanpa mengganti halaman sebelumnya.
-/// Jika route adalah '/', cukup tampilkan Home.
+/// Menangani navigasi yang berasal dari notifikasi.
 void _navigateToNotificationRoute(String route) {
-  if (route == AppRoutes.home || route.isEmpty) {
-    appRouter.go(AppRoutes.home);
-    return;
-  }
+  final router = appRouter;
 
-  appRouter.push(route);
+  if (router == null) return;
+
+  if (route.isEmpty || route == AppRoutes.home) {
+    router.go(AppRoutes.home);
+  } else {
+    router.push(route);
+  }
 }
 
-class CampusNotifyApp extends StatelessWidget {
+class CampusNotifyApp extends ConsumerStatefulWidget {
   const CampusNotifyApp({super.key});
 
   @override
+  ConsumerState<CampusNotifyApp> createState() =>
+      _CampusNotifyAppState();
+}
+
+class _CampusNotifyAppState
+    extends ConsumerState<CampusNotifyApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _router = GoRouter(
+      initialLocation: AppRoutes.home,
+
+      redirect: (context, state) {
+        final auth = ref.read(authStateProvider);
+        final location = state.matchedLocation;
+
+        final goingLogin = location == AppRoutes.login;
+        final goingLoading = location == loadingRoute;
+
+        // Tunggu sampai status token selesai diperiksa.
+        if (auth.isLoading) {
+          if (goingLogin || goingLoading) {
+            return null;
+          }
+
+          return loadingRoute;
+        }
+
+        final loggedIn = auth.asData?.value ?? false;
+
+        // Pengguna yang belum login diarahkan ke login.
+        if (!loggedIn) {
+          if (goingLogin) {
+            return null;
+          }
+
+          final destination =
+              Uri.encodeComponent(state.uri.toString());
+
+          return '${AppRoutes.login}?from=$destination';
+        }
+
+        // Setelah login, lanjutkan ke halaman tujuan.
+        if (goingLogin || goingLoading) {
+          final destination =
+              state.uri.queryParameters['from'];
+
+          if (destination != null &&
+              destination.startsWith('/')) {
+            return destination;
+          }
+
+          return AppRoutes.home;
+        }
+
+        return null;
+      },
+
+      routes: [
+        GoRoute(
+          path: loadingRoute,
+          builder: (context, state) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.login,
+          builder: (context, state) {
+            return const LoginPage();
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.home,
+          builder: (context, state) {
+            return const HomePage();
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.announcement,
+          builder: (context, state) {
+            return AnnouncementPage(
+              id: state.pathParameters['id'] ?? '',
+            );
+          },
+        ),
+      ],
+    );
+
+    appRouter = _router;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Perbarui route guard ketika status login berubah.
+    ref.listen<AsyncValue<bool>>(
+      authStateProvider,
+      (previous, next) {
+        _router.refresh();
+      },
+    );
+
     return MaterialApp.router(
       title: 'Campus Notify',
       debugShowCheckedModeBanner: false,
-      routerConfig: appRouter,
+      routerConfig: _router,
     );
+  }
+
+  @override
+  void dispose() {
+    if (identical(appRouter, _router)) {
+      appRouter = null;
+    }
+
+    _router.dispose();
+
+    super.dispose();
   }
 }
