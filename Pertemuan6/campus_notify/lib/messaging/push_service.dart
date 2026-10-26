@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../routes.dart';
+
 final FlutterLocalNotificationsPlugin _local =
     FlutterLocalNotificationsPlugin();
 
@@ -16,15 +18,13 @@ const AndroidNotificationChannel _channel =
   importance: Importance.high,
 );
 
-/// Handler background wajib berupa fungsi top-level.
+/// Handler background harus berupa fungsi top-level.
+/// Jangan akses BuildContext atau melakukan navigasi di sini.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(
   RemoteMessage message,
 ) async {
   await Firebase.initializeApp();
-
-  // Jangan melakukan navigasi di handler background.
-  // Navigasi dilakukan ketika notifikasi diklik.
 }
 
 /// Meminta izin notifikasi.
@@ -42,13 +42,12 @@ Future<bool> requestNotificationPermission() async {
           AuthorizationStatus.provisional;
 }
 
-/// Menginisialisasi notifikasi lokal.
+/// Inisialisasi notifikasi lokal dan tangani klik banner.
 Future<void> initLocalNotifications({
   required void Function(String route) onNavigate,
 }) async {
-  const android = AndroidInitializationSettings(
-    '@mipmap/ic_launcher',
-  );
+  const android =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const ios = DarwinInitializationSettings();
 
@@ -58,13 +57,11 @@ Future<void> initLocalNotifications({
       iOS: ios,
     ),
     onDidReceiveNotificationResponse: (response) {
-      final route = response.payload;
+      final route = routeFromMessage({
+        'route': response.payload,
+      });
 
-      if (route != null && route.startsWith('/')) {
-        pendingDeepLink = route;
-        onNavigate(route);
-        pendingDeepLink = null;
-      }
+      onNavigate(route);
     },
   );
 
@@ -73,6 +70,17 @@ Future<void> initLocalNotifications({
           AndroidFlutterLocalNotificationsPlugin>();
 
   await androidPlugin?.createNotificationChannel(_channel);
+
+  // Periksa apakah aplikasi dibuka melalui notifikasi lokal.
+  final launchDetails =
+      await _local.getNotificationAppLaunchDetails();
+
+  if (launchDetails?.didNotificationLaunchApp == true) {
+    pendingDeepLink = routeFromMessage({
+      'route':
+          launchDetails?.notificationResponse?.payload,
+    });
+  }
 }
 
 /// Menampilkan notifikasi lokal saat aplikasi foreground.
@@ -80,7 +88,7 @@ Future<void> showForegroundNotification(
   RemoteMessage message,
 ) async {
   final notification = message.notification;
-  final route = message.data['route']?.toString() ?? '/';
+  final route = routeFromMessage(message.data);
 
   await _local.show(
     id: message.hashCode,
@@ -100,21 +108,20 @@ Future<void> showForegroundNotification(
   );
 }
 
-/// Mendaftarkan listener pesan foreground dan klik pesan background.
+/// Listener pesan foreground dan klik notifikasi background.
 void listenForegroundAndOpened({
   required void Function(String route) onNavigate,
 }) {
-  FirebaseMessaging.onMessage.listen((message) async {
-    await showForegroundNotification(message);
-  });
+  FirebaseMessaging.onMessage.listen(
+    showForegroundNotification,
+  );
 
   FirebaseMessaging.onMessageOpenedApp.listen((message) {
-    final route = message.data['route']?.toString() ?? '/';
-    onNavigate(route);
+    onNavigate(routeFromMessage(message.data));
   });
 }
 
-/// Menangani notifikasi yang membuka aplikasi dari keadaan terminated.
+/// Menangani FCM yang membuka aplikasi dari kondisi terminated.
 Future<void> handleTerminated({
   required void Function(String route) onNavigate,
 }) async {
@@ -122,26 +129,25 @@ Future<void> handleTerminated({
       await FirebaseMessaging.instance.getInitialMessage();
 
   if (initialMessage != null) {
-    final route =
-        initialMessage.data['route']?.toString() ?? '/';
-    onNavigate(route);
+    onNavigate(routeFromMessage(initialMessage.data));
     return;
   }
 
   final route = pendingDeepLink;
-  if (route != null && route.startsWith('/')) {
+
+  if (route != null) {
     onNavigate(route);
     pendingDeepLink = null;
   }
 }
 
-/// Mengambil token FCM dan memantau perubahannya.
+/// Mengambil token awal dan mengirim token baru melalui callback.
+/// Callback harus dihubungkan ke backend POST /devices.
 Future<void> initFcmToken({
   required Future<void> Function(String token) onToken,
 }) async {
   final messaging = FirebaseMessaging.instance;
 
-  // Mempertahankan API sesuai contoh jobsheet.
   final token = await messaging.getToken();
 
   if (token != null) {
@@ -151,15 +157,21 @@ Future<void> initFcmToken({
   messaging.onTokenRefresh.listen((newToken) async {
     try {
       await onToken(newToken);
-    } catch (error) {
-      // Pengiriman ulang token dapat ditangani sesuai kebutuhan.
+    } catch (_) {
+      // Jangan mencetak token penuh ke log.
     }
   });
 
   await messaging.subscribeToTopic('pengumuman-kampus');
 }
 
-/// Berhenti menerima broadcast topik.
+/// Berlangganan topik pengumuman kampus.
+Future<void> subscribeToCampusAnnouncements() async {
+  await FirebaseMessaging.instance
+      .subscribeToTopic('pengumuman-kampus');
+}
+
+/// Berhenti berlangganan topik pengumuman kampus.
 Future<void> unsubscribeFromCampusAnnouncements() async {
   await FirebaseMessaging.instance
       .unsubscribeFromTopic('pengumuman-kampus');
