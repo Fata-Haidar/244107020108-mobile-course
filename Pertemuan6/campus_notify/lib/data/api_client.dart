@@ -1,33 +1,26 @@
 import 'package:dio/dio.dart';
-import 'auth_repository.dart';
-import 'token_store.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-Dio buildApiClient(TokenStore store, AuthRepository auth) {
-  final dio = Dio(BaseOptions(baseUrl: 'https://example-campus-api.test'));
+/// Dio client untuk endpoint HTTP tambahan milik aplikasi.
+/// Login dan database notifikasi pada versi ini menggunakan Firebase SDK,
+/// sehingga tidak ada URL API contoh/placeholder di dalam source code.
+Dio buildApiClient({required String baseUrl}) {
+  final dio = Dio(BaseOptions(
+    baseUrl: baseUrl,
+    connectTimeout: const Duration(seconds: 20),
+    receiveTimeout: const Duration(seconds: 20),
+  ));
+
   dio.interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) async {
-      final access = await store.readAccess();
-      if (access != null) {
-        options.headers['Authorization'] = 'Bearer $access';
-      }
-      handler.next(options);
-    },
-    onError: (e, handler) async {
-      if (e.response?.statusCode == 401) {
-        final refresh = await store.readRefresh();
-        if (refresh == null) return handler.next(e);
-        try {
-          final renewed = await auth.refresh(refresh);
-          await store.save(access: renewed, refresh: refresh);
-          final retry = await dio.fetch(
-            e.requestOptions..headers['Authorization'] = 'Bearer $renewed',
-          );
-          return handler.resolve(retry);
-        } catch (_) {
-          await store.clear(); // refresh ikut mati -> paksa login ulang
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final token = await user.getIdToken();
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
         }
       }
-      handler.next(e);
+      handler.next(options);
     },
   ));
   return dio;

@@ -25,35 +25,54 @@ Future<void> main() async {
     firebaseMessagingBackgroundHandler,
   );
 
-  await requestNotificationPermission();
-
-  await initLocalNotifications(
-    onNavigate: _navigateToNotificationRoute,
-  );
-
-  listenForegroundAndOpened(
-    onNavigate: _navigateToNotificationRoute,
-  );
-
-  await subscribeToCampusAnnouncements();
-
   runApp(
     const ProviderScope(
       child: CampusNotifyApp(),
     ),
   );
 
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    await handleTerminated(
-      onNavigate: _navigateToNotificationRoute,
-    );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _initializeNotifications();
   });
 }
 
-/// Menangani navigasi yang berasal dari notifikasi.
+Future<void> _initializeNotifications() async {
+  try {
+    await initLocalNotifications(
+      onNavigate: _navigateToNotificationRoute,
+    );
+  } catch (e) {
+    debugPrint('Local notification initialization failed: $e');
+  }
+
+  listenForegroundAndOpened(
+    onNavigate: _navigateToNotificationRoute,
+  );
+
+  try {
+    await requestNotificationPermission();
+  } catch (e) {
+    debugPrint('Notification permission error: $e');
+  }
+
+  try {
+    await subscribeToCampusAnnouncements();
+  } catch (e) {
+    debugPrint('FCM topic subscription error: $e');
+  }
+
+  // Tangani aplikasi yang dibuka melalui notifikasi.
+  try {
+    await handleTerminated(
+      onNavigate: _navigateToNotificationRoute,
+    );
+  } catch (e) {
+    debugPrint('Initial notification handling error: $e');
+  }
+}
+
 void _navigateToNotificationRoute(String route) {
   final router = appRouter;
-
   if (router == null) return;
 
   if (route.isEmpty || route == AppRoutes.home) {
@@ -81,7 +100,6 @@ class _CampusNotifyAppState
 
     _router = GoRouter(
       initialLocation: AppRoutes.home,
-
       redirect: (context, state) {
         final auth = ref.read(authStateProvider);
         final location = state.matchedLocation;
@@ -89,22 +107,16 @@ class _CampusNotifyAppState
         final goingLogin = location == AppRoutes.login;
         final goingLoading = location == loadingRoute;
 
-        // Tunggu sampai status token selesai diperiksa.
         if (auth.isLoading) {
-          if (goingLogin || goingLoading) {
-            return null;
-          }
-
-          return loadingRoute;
+          return (goingLogin || goingLoading)
+              ? null
+              : loadingRoute;
         }
 
         final loggedIn = auth.asData?.value ?? false;
 
-        // Pengguna yang belum login diarahkan ke login.
         if (!loggedIn) {
-          if (goingLogin) {
-            return null;
-          }
+          if (goingLogin) return null;
 
           final destination =
               Uri.encodeComponent(state.uri.toString());
@@ -112,7 +124,6 @@ class _CampusNotifyAppState
           return '${AppRoutes.login}?from=$destination';
         }
 
-        // Setelah login, lanjutkan ke halaman tujuan.
         if (goingLogin || goingLoading) {
           final destination =
               state.uri.queryParameters['from'];
@@ -127,7 +138,6 @@ class _CampusNotifyAppState
 
         return null;
       },
-
       routes: [
         GoRoute(
           path: loadingRoute,
@@ -167,7 +177,6 @@ class _CampusNotifyAppState
 
   @override
   Widget build(BuildContext context) {
-    // Perbarui route guard ketika status login berubah.
     ref.listen<AsyncValue<bool>>(
       authStateProvider,
       (previous, next) {
@@ -179,6 +188,12 @@ class _CampusNotifyAppState
       title: 'Campus Notify',
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+        ),
+        useMaterial3: true,
+      ),
     );
   }
 
@@ -189,7 +204,6 @@ class _CampusNotifyAppState
     }
 
     _router.dispose();
-
     super.dispose();
   }
 }

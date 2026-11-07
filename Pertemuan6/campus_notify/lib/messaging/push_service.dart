@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../data/notification_repository.dart';
 import '../routes.dart';
 
 final FlutterLocalNotificationsPlugin _local =
@@ -12,22 +13,76 @@ String? pendingDeepLink;
 
 const AndroidNotificationChannel _channel =
     AndroidNotificationChannel(
-  'pengumuman',
+  'campus_announcements_v2',
   'Pengumuman Kampus',
-  description: 'Notifikasi pengumuman kampus',
+  description: 'Notifikasi pengumuman dan informasi kampus',
   importance: Importance.high,
+  playSound: true,
+  sound: RawResourceAndroidNotificationSound('campus_notify'),
 );
 
-/// Handler background harus berupa fungsi top-level.
-/// Jangan akses BuildContext atau melakukan navigasi di sini.
+String _notificationId(RemoteMessage message) {
+  final data = message.data;
+
+  final id = data['notificationId']?.toString();
+  if (id != null && id.isNotEmpty) return id;
+
+  final announcementId = data['announcementId']?.toString();
+  if (announcementId != null && announcementId.isNotEmpty) {
+    return announcementId;
+  }
+
+  final route = data['route']?.toString();
+  if (route != null) {
+    final uri = Uri.tryParse(route);
+    if (uri != null &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'pengumuman') {
+      return uri.pathSegments[1];
+    }
+  }
+
+  return message.messageId ??
+      DateTime.now().microsecondsSinceEpoch.toString();
+}
+
+String _notificationRoute(RemoteMessage message) {
+  final route = message.data['route']?.toString();
+
+  if (route != null && route.isNotEmpty) {
+    return routeFromMessage(message.data);
+  }
+
+  return AppRoutes.announcementById(_notificationId(message));
+}
+
+Future<void> _saveMessage(RemoteMessage message) async {
+  final notification = message.notification;
+
+  final title = notification?.title ??
+      message.data['title']?.toString() ??
+      'Pengumuman Kampus';
+
+  final body = notification?.body ??
+      message.data['body']?.toString() ??
+      'Ada informasi baru.';
+
+  await NotificationRepository.instance.saveNotification(
+    id: _notificationId(message),
+    title: title,
+    body: body,
+    route: _notificationRoute(message),
+  );
+}
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(
   RemoteMessage message,
 ) async {
   await Firebase.initializeApp();
+  await _saveMessage(message);
 }
 
-/// Meminta izin notifikasi.
 Future<bool> requestNotificationPermission() async {
   final settings =
       await FirebaseMessaging.instance.requestPermission(
@@ -42,12 +97,12 @@ Future<bool> requestNotificationPermission() async {
           AuthorizationStatus.provisional;
 }
 
-/// Inisialisasi notifikasi lokal dan tangani klik banner.
 Future<void> initLocalNotifications({
   required void Function(String route) onNavigate,
 }) async {
-  const android =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const android = AndroidInitializationSettings(
+    '@mipmap/ic_launcher',
+  );
 
   const ios = DarwinInitializationSettings();
 
@@ -57,11 +112,10 @@ Future<void> initLocalNotifications({
       iOS: ios,
     ),
     onDidReceiveNotificationResponse: (response) {
-      final route = routeFromMessage({
-        'route': response.payload,
-      });
-
-      onNavigate(route);
+      final route = response.payload;
+      if (route != null && route.isNotEmpty) {
+        onNavigate(route);
+      }
     },
   );
 
@@ -71,85 +125,96 @@ Future<void> initLocalNotifications({
 
   await androidPlugin?.createNotificationChannel(_channel);
 
-  // Periksa apakah aplikasi dibuka melalui notifikasi lokal.
-  final launchDetails =
-      await _local.getNotificationAppLaunchDetails();
+  final details = await _local.getNotificationAppLaunchDetails();
 
-  if (launchDetails?.didNotificationLaunchApp == true) {
-    pendingDeepLink = routeFromMessage({
-      'route':
-          launchDetails?.notificationResponse?.payload,
-    });
+  if (details?.didNotificationLaunchApp == true) {
+    final payload = details?.notificationResponse?.payload;
+
+    if (payload != null && payload.isNotEmpty) {
+      pendingDeepLink = payload;
+    }
   }
 }
 
-/// Menampilkan notifikasi lokal saat aplikasi foreground.
 Future<void> showForegroundNotification(
   RemoteMessage message,
 ) async {
+  await _saveMessage(message);
+
   final notification = message.notification;
-  final route = routeFromMessage(message.data);
+
+  final title = notification?.title ??
+      message.data['title']?.toString() ??
+      'Pengumuman Kampus';
+
+  final body = notification?.body ??
+      message.data['body']?.toString() ??
+      'Ada informasi baru.';
 
   await _local.show(
-    id: message.hashCode,
-    title: notification?.title ?? 'Pengumuman Kampus',
-    body: notification?.body ?? 'Ada pengumuman baru.',
+    id: _notificationId(message).hashCode,
+    title: title,
+    body: body,
     notificationDetails: const NotificationDetails(
       android: AndroidNotificationDetails(
-        'pengumuman',
+        'campus_announcements_v2',
         'Pengumuman Kampus',
-        channelDescription: 'Notifikasi pengumuman kampus',
+        channelDescription:
+            'Notifikasi pengumuman dan informasi kampus',
         importance: Importance.high,
         priority: Priority.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound(
+          'campus_notify',
+        ),
       ),
-      iOS: DarwinNotificationDetails(),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: true,
+      ),
     ),
-    payload: route,
+    payload: _notificationRoute(message),
   );
 }
 
-/// Listener pesan foreground dan klik notifikasi background.
 void listenForegroundAndOpened({
   required void Function(String route) onNavigate,
 }) {
-  FirebaseMessaging.onMessage.listen(
-    showForegroundNotification,
-  );
+  FirebaseMessaging.onMessage.listen((message) async {
+    await showForegroundNotification(message);
+  });
 
-  FirebaseMessaging.onMessageOpenedApp.listen((message) {
-    onNavigate(routeFromMessage(message.data));
+  FirebaseMessaging.onMessageOpenedApp.listen((message) async {
+    await _saveMessage(message);
+    onNavigate(_notificationRoute(message));
   });
 }
 
-/// Menangani FCM yang membuka aplikasi dari kondisi terminated.
 Future<void> handleTerminated({
   required void Function(String route) onNavigate,
 }) async {
-  final initialMessage =
+  final message =
       await FirebaseMessaging.instance.getInitialMessage();
 
-  if (initialMessage != null) {
-    onNavigate(routeFromMessage(initialMessage.data));
+  if (message != null) {
+    await _saveMessage(message);
+    onNavigate(_notificationRoute(message));
     return;
   }
 
   final route = pendingDeepLink;
-
-  if (route != null) {
+  if (route != null && route.isNotEmpty) {
     onNavigate(route);
     pendingDeepLink = null;
   }
 }
 
-/// Mengambil token awal dan mengirim token baru melalui callback.
-/// Callback harus dihubungkan ke backend POST /devices.
 Future<void> initFcmToken({
   required Future<void> Function(String token) onToken,
 }) async {
   final messaging = FirebaseMessaging.instance;
 
   final token = await messaging.getToken();
-
   if (token != null) {
     await onToken(token);
   }
@@ -158,20 +223,16 @@ Future<void> initFcmToken({
     try {
       await onToken(newToken);
     } catch (_) {
-      // Jangan mencetak token penuh ke log.
+      // Hindari mencetak token perangkat ke log.
     }
   });
-
-  await messaging.subscribeToTopic('pengumuman-kampus');
 }
 
-/// Berlangganan topik pengumuman kampus.
 Future<void> subscribeToCampusAnnouncements() async {
   await FirebaseMessaging.instance
       .subscribeToTopic('pengumuman-kampus');
 }
 
-/// Berhenti berlangganan topik pengumuman kampus.
 Future<void> unsubscribeFromCampusAnnouncements() async {
   await FirebaseMessaging.instance
       .unsubscribeFromTopic('pengumuman-kampus');
