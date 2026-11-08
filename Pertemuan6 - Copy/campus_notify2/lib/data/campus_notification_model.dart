@@ -1,4 +1,4 @@
-import '../../domain/entities/campus_notification.dart';
+import '../domain/campus_notification.dart';
 
 class CampusNotificationModel extends CampusNotification {
   const CampusNotificationModel({

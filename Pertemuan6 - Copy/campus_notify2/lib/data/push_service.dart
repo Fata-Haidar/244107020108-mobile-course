@@ -1,9 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import '../repositories/notification_repository_impl.dart';
-import '../../presentation/routes.dart';
+import 'notification_repository_impl.dart';
+import '../domain/notification_route.dart';
 
 final FlutterLocalNotificationsPlugin _local =
     FlutterLocalNotificationsPlugin();
@@ -19,41 +22,35 @@ const AndroidNotificationChannel _channel = AndroidNotificationChannel(
   sound: RawResourceAndroidNotificationSound('campus_notify'),
 );
 
-String _notificationId(RemoteMessage message) {
-  final data = message.data;
-
-  final id = data['notificationId']?.toString();
-  if (id != null && id.isNotEmpty) return id;
-
-  final announcementId = data['announcementId']?.toString();
-  if (announcementId != null && announcementId.isNotEmpty) {
-    return announcementId;
-  }
-
-  final route = data['route']?.toString();
-  if (route != null) {
-    final uri = Uri.tryParse(route);
-    if (uri != null &&
-        uri.pathSegments.length >= 2 &&
-        uri.pathSegments[0] == 'pengumuman') {
-      return uri.pathSegments[1];
-    }
-  }
-
-  return message.messageId ?? DateTime.now().microsecondsSinceEpoch.toString();
+String notificationId(RemoteMessage message) {
+  if (message.messageId?.isNotEmpty == true) return message.messageId!;
+  final explicit = message.data['notificationId']?.toString();
+  if (explicit != null && explicit.isNotEmpty) return explicit;
+  // Stable fallback; senders should always supply a unique notificationId.
+  return jsonEncode([
+    message.sentTime?.millisecondsSinceEpoch,
+    message.data,
+    message.notification?.title,
+    message.notification?.body,
+  ]);
 }
 
 String _notificationRoute(RemoteMessage message) {
-  final route = message.data['route']?.toString();
-
-  if (route != null && route.isNotEmpty) {
-    return routeFromMessage(message.data);
-  }
-
-  return AppRoutes.announcementById(_notificationId(message));
+  final target = routeFromMessage(message.data);
+  final uri = Uri.tryParse(target);
+  final announcement =
+      uri != null &&
+          uri.pathSegments.length == 2 &&
+          uri.pathSegments.first == 'pengumuman'
+      ? uri.pathSegments.last
+      : message.data['id']?.toString();
+  return AppRoutes.notificationDetail(
+    id: notificationId(message),
+    route: AppRoutes.announcementById(announcement ?? notificationId(message)),
+  );
 }
 
-Future<void> _saveMessage(RemoteMessage message) async {
+Future<bool> _saveMessage(RemoteMessage message) async {
   final notification = message.notification;
 
   final title =
@@ -66,18 +63,25 @@ Future<void> _saveMessage(RemoteMessage message) async {
       message.data['body']?.toString() ??
       'Ada informasi baru.';
 
-  await NotificationRepositoryImpl.instance.saveNotification(
-    id: _notificationId(message),
+  return NotificationRepositoryImpl.instance.saveNotification(
+    id: notificationId(message),
     title: title,
     body: body,
     route: _notificationRoute(message),
+    createdAt: message.sentTime,
   );
 }
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  await _saveMessage(message);
+  final inserted = await _saveMessage(message);
+  // Notification payload is already displayed by Android. Only data-only
+  // deliveries need a local banner from this isolate.
+  if (message.notification == null && inserted) {
+    await initLocalNotifications(onNavigate: (_) {});
+    await _displayNotification(message);
+  }
 }
 
 Future<bool> requestNotificationPermission() async {
@@ -127,8 +131,13 @@ Future<void> initLocalNotifications({
 }
 
 Future<void> showForegroundNotification(RemoteMessage message) async {
-  await _saveMessage(message);
+  final inserted = await _saveMessage(message);
+  if (!inserted) return;
 
+  await _displayNotification(message);
+}
+
+Future<void> _displayNotification(RemoteMessage message) async {
   final notification = message.notification;
 
   final title =
@@ -142,7 +151,7 @@ Future<void> showForegroundNotification(RemoteMessage message) async {
       'Ada informasi baru.';
 
   await _local.show(
-    id: _notificationId(message).hashCode,
+    id: notificationId(message).hashCode,
     title: title,
     body: body,
     notificationDetails: const NotificationDetails(
@@ -161,16 +170,20 @@ Future<void> showForegroundNotification(RemoteMessage message) async {
   );
 }
 
+bool _listenersStarted = false;
+
 void listenForegroundAndOpened({
   required void Function(String route) onNavigate,
 }) {
+  if (_listenersStarted) return;
+  _listenersStarted = true;
   FirebaseMessaging.onMessage.listen((message) async {
     await showForegroundNotification(message);
   });
 
   FirebaseMessaging.onMessageOpenedApp.listen((message) async {
     await _saveMessage(message);
-    onNavigate(AppRoutes.home);
+    onNavigate(_notificationRoute(message));
   });
 }
 
@@ -181,7 +194,7 @@ Future<void> handleTerminated({
 
   if (message != null) {
     await _saveMessage(message);
-    onNavigate(AppRoutes.home);
+    onNavigate(_notificationRoute(message));
     return;
   }
 
@@ -192,17 +205,24 @@ Future<void> handleTerminated({
   }
 }
 
+StreamSubscription<String>? _tokenSubscription;
+
 Future<void> initFcmToken({
   required Future<void> Function(String token) onToken,
 }) async {
   final messaging = FirebaseMessaging.instance;
 
+  // Preserve registration-token semantics for the existing Console workflow.
+  // Version 17 register/onRegistered returns FID, requiring backend migration.
+  // ignore: deprecated_member_use
   final token = await messaging.getToken();
   if (token != null) {
     await onToken(token);
   }
 
-  messaging.onTokenRefresh.listen((newToken) async {
+  await _tokenSubscription?.cancel();
+  // ignore: deprecated_member_use
+  _tokenSubscription = messaging.onTokenRefresh.listen((newToken) async {
     try {
       await onToken(newToken);
     } catch (_) {

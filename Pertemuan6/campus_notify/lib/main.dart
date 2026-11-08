@@ -1,4 +1,3 @@
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import 'pages/home_page.dart';
 import 'pages/login_page.dart';
 import 'providers/auth_provider.dart';
 import 'routes.dart';
+import 'data/notification_repository.dart';
 
 const String loadingRoute = '/loading';
 
@@ -21,15 +21,9 @@ Future<void> main() async {
 
   await Firebase.initializeApp();
 
-  FirebaseMessaging.onBackgroundMessage(
-    firebaseMessagingBackgroundHandler,
-  );
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  runApp(
-    const ProviderScope(
-      child: CampusNotifyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: CampusNotifyApp()));
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _initializeNotifications();
@@ -38,16 +32,12 @@ Future<void> main() async {
 
 Future<void> _initializeNotifications() async {
   try {
-    await initLocalNotifications(
-      onNavigate: _navigateToNotificationRoute,
-    );
+    await initLocalNotifications(onNavigate: _navigateToNotificationRoute);
   } catch (e) {
     debugPrint('Local notification initialization failed: $e');
   }
 
-  listenForegroundAndOpened(
-    onNavigate: _navigateToNotificationRoute,
-  );
+  listenForegroundAndOpened(onNavigate: _navigateToNotificationRoute);
 
   try {
     await requestNotificationPermission();
@@ -63,9 +53,7 @@ Future<void> _initializeNotifications() async {
 
   // Tangani aplikasi yang dibuka melalui notifikasi.
   try {
-    await handleTerminated(
-      onNavigate: _navigateToNotificationRoute,
-    );
+    await handleTerminated(onNavigate: _navigateToNotificationRoute);
   } catch (e) {
     debugPrint('Initial notification handling error: $e');
   }
@@ -86,12 +74,10 @@ class CampusNotifyApp extends ConsumerStatefulWidget {
   const CampusNotifyApp({super.key});
 
   @override
-  ConsumerState<CampusNotifyApp> createState() =>
-      _CampusNotifyAppState();
+  ConsumerState<CampusNotifyApp> createState() => _CampusNotifyAppState();
 }
 
-class _CampusNotifyAppState
-    extends ConsumerState<CampusNotifyApp> {
+class _CampusNotifyAppState extends ConsumerState<CampusNotifyApp> {
   late final GoRouter _router;
 
   @override
@@ -110,7 +96,7 @@ class _CampusNotifyAppState
         if (auth.isLoading) {
           return (goingLogin || goingLoading)
               ? null
-              : loadingRoute;
+              : '$loadingRoute?from=${Uri.encodeComponent(state.uri.toString())}';
         }
 
         final loggedIn = auth.asData?.value ?? false;
@@ -118,18 +104,19 @@ class _CampusNotifyAppState
         if (!loggedIn) {
           if (goingLogin) return null;
 
-          final destination =
-              Uri.encodeComponent(state.uri.toString());
+          final destination = Uri.encodeComponent(
+            goingLoading
+                ? (state.uri.queryParameters['from'] ?? AppRoutes.home)
+                : state.uri.toString(),
+          );
 
           return '${AppRoutes.login}?from=$destination';
         }
 
         if (goingLogin || goingLoading) {
-          final destination =
-              state.uri.queryParameters['from'];
+          final destination = state.uri.queryParameters['from'];
 
-          if (destination != null &&
-              destination.startsWith('/')) {
+          if (destination != null && destination.startsWith('/')) {
             return destination;
           }
 
@@ -143,9 +130,7 @@ class _CampusNotifyAppState
           path: loadingRoute,
           builder: (context, state) {
             return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
+              body: Center(child: CircularProgressIndicator()),
             );
           },
         ),
@@ -165,7 +150,13 @@ class _CampusNotifyAppState
           path: AppRoutes.announcement,
           builder: (context, state) {
             return AnnouncementPage(
-              id: state.pathParameters['id'] ?? '',
+              initialNotification: state.extra is CampusNotification
+                  ? state.extra as CampusNotification
+                  : null,
+              id:
+                  state.uri.queryParameters['notificationId'] ??
+                  state.pathParameters['id'] ??
+                  '',
             );
           },
         ),
@@ -177,21 +168,16 @@ class _CampusNotifyAppState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<bool>>(
-      authStateProvider,
-      (previous, next) {
-        _router.refresh();
-      },
-    );
+    ref.listen<AsyncValue<bool>>(authStateProvider, (previous, next) {
+      _router.refresh();
+    });
 
     return MaterialApp.router(
       title: 'Campus Notify',
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
     );

@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../data/services/push_service.dart';
-import '../../domain/entities/campus_notification.dart';
-import '../providers/auth_provider.dart';
-import '../providers/notification_provider.dart';
-import '../routes.dart';
+import '../domain/campus_notification.dart';
+import 'auth_provider.dart';
+import 'notification_provider.dart';
+import 'routes.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -54,36 +53,22 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Future<void> _registerFcmToken() async {
     try {
-      await initFcmToken(
-        onToken: (token) {
-          return ref
-              .read(notificationRepositoryProvider)
-              .saveDeviceToken(token);
-        },
-      );
+      final repository = ref.read(notificationRepositoryProvider);
+      await ref.read(registerDeviceTokenProvider)(repository.saveDeviceToken);
     } catch (e) {
       debugPrint('FCM token registration failed: $e');
     }
   }
 
   Future<void> _openNotification(CampusNotification item) async {
-    final deleted = await context.push<bool>(
-      AppRoutes.announcementById(item.id),
+    await context.push(
+      AppRoutes.notificationDetail(id: item.id, route: item.route),
       extra: item,
     );
 
     if (!mounted) return;
 
-    if (deleted == true) {
-      try {
-        await ref
-            .read(notificationRepositoryProvider)
-            .deleteNotification(item.id);
-      } catch (e) {
-        debugPrint('Gagal menghapus notifikasi: $e');
-      }
-    }
-
+    // Refresh setelah kembali dari detail. Pesan yang dibuka telah dihapus.
     _refreshNotifications();
   }
 
@@ -146,7 +131,7 @@ class _HomePageState extends ConsumerState<HomePage>
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            error: (_, __) => IconButton(
+            error: (_, _) => IconButton(
               onPressed: _refreshNotifications,
               icon: const Icon(Icons.refresh),
             ),
@@ -205,8 +190,7 @@ class _HomePageState extends ConsumerState<HomePage>
               ),
 
               data: (items) {
-                // Tampilkan SEMUA notifikasi.
-                // Jangan filter hanya notifikasi belum dibaca.
+                // Tampilkan notifikasi yang masih tersimpan (belum dihapus).
                 final unreadCount = items.where((item) => !item.isRead).length;
 
                 if (items.isEmpty) {

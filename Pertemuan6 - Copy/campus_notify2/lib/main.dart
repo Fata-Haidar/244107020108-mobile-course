@@ -1,16 +1,19 @@
+import 'data/auth_repository_impl.dart';
+import 'data/notification_repository_impl.dart';
+import 'presentation/notification_provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'data/services/push_service.dart';
-import 'domain/entities/campus_notification.dart';
-import 'presentation/pages/announcement_page.dart';
-import 'presentation/pages/home_page.dart';
-import 'presentation/pages/login_page.dart';
-import 'presentation/providers/auth_provider.dart';
+import 'data/push_service.dart';
+import 'presentation/announcement_page.dart';
+import 'presentation/home_page.dart';
+import 'presentation/login_page.dart';
+import 'presentation/auth_provider.dart';
 import 'presentation/routes.dart';
+import 'domain/campus_notification.dart';
 
 const String loadingRoute = '/loading';
 
@@ -23,7 +26,20 @@ Future<void> main() async {
 
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  runApp(const ProviderScope(child: CampusNotifyApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        registerDeviceTokenProvider.overrideWithValue(
+          (onToken) => initFcmToken(onToken: onToken),
+        ),
+        authRepositoryProvider.overrideWith((ref) => AuthRepositoryImpl()),
+        notificationRepositoryProvider.overrideWith(
+          (ref) => NotificationRepositoryImpl.instance,
+        ),
+      ],
+      child: const CampusNotifyApp(),
+    ),
+  );
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _initializeNotifications();
@@ -94,7 +110,9 @@ class _CampusNotifyAppState extends ConsumerState<CampusNotifyApp> {
         final goingLoading = location == loadingRoute;
 
         if (auth.isLoading) {
-          return (goingLogin || goingLoading) ? null : loadingRoute;
+          return (goingLogin || goingLoading)
+              ? null
+              : '$loadingRoute?from=${Uri.encodeComponent(state.uri.toString())}';
         }
 
         final loggedIn = auth.asData?.value ?? false;
@@ -102,7 +120,11 @@ class _CampusNotifyAppState extends ConsumerState<CampusNotifyApp> {
         if (!loggedIn) {
           if (goingLogin) return null;
 
-          final destination = Uri.encodeComponent(state.uri.toString());
+          final destination = Uri.encodeComponent(
+            goingLoading
+                ? (state.uri.queryParameters['from'] ?? AppRoutes.home)
+                : state.uri.toString(),
+          );
 
           return '${AppRoutes.login}?from=$destination';
         }
@@ -144,10 +166,13 @@ class _CampusNotifyAppState extends ConsumerState<CampusNotifyApp> {
           path: AppRoutes.announcement,
           builder: (context, state) {
             return AnnouncementPage(
-              id: state.pathParameters['id'] ?? '',
               initialNotification: state.extra is CampusNotification
                   ? state.extra as CampusNotification
                   : null,
+              id:
+                  state.uri.queryParameters['notificationId'] ??
+                  state.pathParameters['id'] ??
+                  '',
             );
           },
         ),

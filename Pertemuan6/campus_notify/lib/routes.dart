@@ -1,4 +1,3 @@
-
 /// Konstanta rute aplikasi dan parser payload FCM.
 class AppRoutes {
   AppRoutes._();
@@ -8,7 +7,31 @@ class AppRoutes {
   static const String announcement = '/pengumuman/:id';
 
   static String announcementById(String id) =>
-      '/pengumuman/$id';
+      '/pengumuman/${Uri.encodeComponent(id)}';
+
+  /// Route pengumuman dan ID delivery adalah dua identitas berbeda.
+  /// Selalu kirim ID penyimpanan, termasuk untuk route dari versi lama.
+  static String notificationDetail({
+    required String id,
+    required String route,
+  }) {
+    final target = Uri.tryParse(route);
+    final validAnnouncement =
+        target != null &&
+        target.pathSegments.length == 2 &&
+        target.pathSegments.first == 'pengumuman';
+    final path = validAnnouncement
+        ? announcementById(target.pathSegments.last)
+        : announcementById(id);
+    return Uri.parse(path)
+        .replace(
+          queryParameters: {
+            if (validAnnouncement) ...target.queryParameters,
+            'notificationId': id,
+          },
+        )
+        .toString();
+  }
 }
 
 /// Fungsi murni: tidak mengakses Firebase, UI, atau BuildContext.

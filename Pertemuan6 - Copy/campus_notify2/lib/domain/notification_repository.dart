@@ -1,17 +1,20 @@
-import '../entities/campus_notification.dart';
+import 'campus_notification.dart';
 
 abstract interface class NotificationRepository {
   Future<List<CampusNotification>> getNotifications();
 
   Stream<List<CampusNotification>> watchNotifications();
 
+  Future<CampusNotification?> getNotification(String id);
+
   Stream<CampusNotification?> watchNotification(String id);
 
-  Future<void> saveNotification({
+  Future<bool> saveNotification({
     required String id,
     required String title,
     required String body,
     String? route,
+    DateTime? createdAt,
   });
 
   Future<void> markAsRead(String id);

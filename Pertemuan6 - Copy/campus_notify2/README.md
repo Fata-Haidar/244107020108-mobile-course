@@ -15,9 +15,3 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
-
-## Struktur aplikasi
-
-- `lib/data`: implementasi Firebase, penyimpanan lokal, model, dan service.
-- `lib/domain`: entity serta kontrak repository yang tidak bergantung pada UI.
-- `lib/presentation`: halaman, provider Riverpod, dan routing aplikasi.

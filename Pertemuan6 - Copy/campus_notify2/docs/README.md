@@ -8,7 +8,6 @@ Dokumen AI Challenge dan lembar pencatatan pengujian FCM tersedia di folder `doc
 - `docs/ai-output-awal.md` — ringkasan keluaran awal AI.
 - `docs/perbaikan-manual.md` — perbaikan dan temuan teknis.
 - `docs/hasil-pengujian-fcm.md` — tabel pengujian untuk diisi berdasarkan hasil aktual.
-- `docs/laporan-perbedaan-struktur.md` — laporan perbandingan struktur awal dan struktur SOLID.
 
 ## Penting
 

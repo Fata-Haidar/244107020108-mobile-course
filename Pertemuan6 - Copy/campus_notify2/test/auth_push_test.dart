@@ -1,4 +1,4 @@
-import 'package:campus_notify/data/services/api_errors.dart';
+import 'package:campus_notify/data/api_errors.dart';
 import 'package:campus_notify/presentation/routes.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';

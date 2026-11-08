@@ -1,11 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/repositories/notification_repository_impl.dart';
-import '../../domain/entities/campus_notification.dart';
-import '../../domain/repositories/notification_repository.dart';
+import '../domain/notification_repository.dart';
+import '../domain/campus_notification.dart';
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepositoryImpl.instance;
+  throw StateError('NotificationRepository harus disediakan di ProviderScope.');
 });
 
 final notificationsProvider = StreamProvider<List<CampusNotification>>((ref) {
@@ -15,4 +14,12 @@ final notificationsProvider = StreamProvider<List<CampusNotification>>((ref) {
 final notificationDetailProvider =
     StreamProvider.family<CampusNotification?, String>((ref, id) {
       return ref.watch(notificationRepositoryProvider).watchNotification(id);
+    });
+
+/// Disediakan oleh composition root agar UI tidak mengimpor Firebase.
+final registerDeviceTokenProvider =
+    Provider<Future<void> Function(Future<void> Function(String) onToken)>((
+      ref,
+    ) {
+      throw StateError('Registrasi token harus disediakan di ProviderScope.');
     });

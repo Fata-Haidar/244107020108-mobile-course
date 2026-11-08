@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -55,29 +54,22 @@ class _HomePageState extends ConsumerState<HomePage>
 
   Future<void> _registerFcmToken() async {
     try {
-      await initFcmToken(
-        onToken: (token) {
-          return ref
-              .read(notificationRepositoryProvider)
-              .saveDeviceToken(token);
-        },
-      );
+      final repository = ref.read(notificationRepositoryProvider);
+      await initFcmToken(onToken: repository.saveDeviceToken);
     } catch (e) {
       debugPrint('FCM token registration failed: $e');
     }
   }
 
-  Future<void> _openNotification(
-    CampusNotification item,
-  ) async {
+  Future<void> _openNotification(CampusNotification item) async {
     await context.push(
-      AppRoutes.announcementById(item.id),
+      AppRoutes.notificationDetail(id: item.id, route: item.route),
+      extra: item,
     );
 
     if (!mounted) return;
 
-    // Refresh setelah kembali dari halaman detail.
-    // Semua notifikasi tetap ditampilkan.
+    // Refresh setelah kembali dari detail. Pesan yang dibuka telah dihapus.
     _refreshNotifications();
   }
 
@@ -86,9 +78,7 @@ class _HomePageState extends ConsumerState<HomePage>
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Konfirmasi Logout'),
-        content: const Text(
-          'Apakah kamu yakin ingin keluar dari aplikasi?',
-        ),
+        content: const Text('Apakah kamu yakin ingin keluar dari aplikasi?'),
         actions: [
           TextButton(
             onPressed: () {
@@ -113,18 +103,16 @@ class _HomePageState extends ConsumerState<HomePage>
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logout gagal: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Logout gagal: $e')));
     }
   }
 
   void _showNotificationsInfo(int count) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$count notifikasi belum dibaca'),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$count notifikasi belum dibaca')));
   }
 
   @override
@@ -141,27 +129,22 @@ class _HomePageState extends ConsumerState<HomePage>
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            error: (_, __) => IconButton(
+            error: (_, _) => IconButton(
               onPressed: _refreshNotifications,
               icon: const Icon(Icons.refresh),
             ),
             data: (items) {
-              final unreadCount =
-                  items.where((item) => !item.isRead).length;
+              final unreadCount = items.where((item) => !item.isRead).length;
 
               return IconButton(
                 tooltip: 'Notifikasi ($unreadCount belum dibaca)',
                 onPressed: () {
                   _showNotificationsInfo(unreadCount);
                 },
-                icon: _NotificationBell(
-                  count: unreadCount,
-                ),
+                icon: _NotificationBell(count: unreadCount),
               );
             },
           ),
@@ -177,9 +160,7 @@ class _HomePageState extends ConsumerState<HomePage>
         onRefresh: () async {
           _refreshNotifications();
 
-          await Future<void>.delayed(
-            const Duration(milliseconds: 500),
-          );
+          await Future<void>.delayed(const Duration(milliseconds: 500));
         },
 
         child: ListView(
@@ -189,10 +170,7 @@ class _HomePageState extends ConsumerState<HomePage>
           children: [
             const Text(
               'Notifikasi Kampus',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 6),
@@ -208,18 +186,13 @@ class _HomePageState extends ConsumerState<HomePage>
               error: (error, _) => Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Gagal memuat notifikasi: $error',
-                  ),
+                  child: Text('Gagal memuat notifikasi: $error'),
                 ),
               ),
 
               data: (items) {
-                // Tampilkan SEMUA notifikasi.
-                // Jangan filter hanya notifikasi belum dibaca.
-                final unreadCount = items
-                    .where((item) => !item.isRead)
-                    .length;
+                // Tampilkan notifikasi yang masih tersimpan (belum dihapus).
+                final unreadCount = items.where((item) => !item.isRead).length;
 
                 if (items.isEmpty) {
                   return const Card(
@@ -227,10 +200,7 @@ class _HomePageState extends ConsumerState<HomePage>
                       padding: EdgeInsets.all(24),
                       child: Column(
                         children: [
-                          Icon(
-                            Icons.notifications_off_outlined,
-                            size: 48,
-                          ),
+                          Icon(Icons.notifications_off_outlined, size: 48),
                           SizedBox(height: 12),
                           Text('Belum ada notifikasi.'),
                         ],
@@ -264,9 +234,7 @@ class _HomePageState extends ConsumerState<HomePage>
 
                     ...items.map((item) {
                       return Card(
-                        margin: const EdgeInsets.only(
-                          bottom: 10,
-                        ),
+                        margin: const EdgeInsets.only(bottom: 10),
 
                         color: item.isRead
                             ? Colors.grey.withAlpha(15)
@@ -283,9 +251,7 @@ class _HomePageState extends ConsumerState<HomePage>
                                   ? Icons.notifications_none
                                   : Icons.campaign_outlined,
 
-                              color: item.isRead
-                                  ? Colors.grey
-                                  : Colors.blue,
+                              color: item.isRead ? Colors.grey : Colors.blue,
                             ),
                           ),
 
@@ -299,8 +265,7 @@ class _HomePageState extends ConsumerState<HomePage>
                           ),
 
                           subtitle: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 4),
 
@@ -313,9 +278,7 @@ class _HomePageState extends ConsumerState<HomePage>
                               const SizedBox(height: 6),
 
                               Text(
-                                item.isRead
-                                    ? 'Sudah dibaca'
-                                    : 'Belum dibaca',
+                                item.isRead ? 'Sudah dibaca' : 'Belum dibaca',
 
                                 style: TextStyle(
                                   fontSize: 12,
@@ -330,21 +293,15 @@ class _HomePageState extends ConsumerState<HomePage>
                                 const SizedBox(height: 5),
 
                                 Text(
-                                  item.createdAt!
-                                      .toLocal()
-                                      .toString(),
+                                  item.createdAt!.toLocal().toString(),
 
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall,
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ],
                           ),
 
-                          trailing: const Icon(
-                            Icons.chevron_right,
-                          ),
+                          trailing: const Icon(Icons.chevron_right),
 
                           onTap: () {
                             _openNotification(item);
@@ -370,9 +327,7 @@ class _HomePageState extends ConsumerState<HomePage>
 }
 
 class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({
-    required this.count,
-  });
+  const _NotificationBell({required this.count});
 
   final int count;
 
@@ -388,14 +343,9 @@ class _NotificationBell extends StatelessWidget {
             right: -8,
             top: -7,
             child: Container(
-              constraints: const BoxConstraints(
-                minWidth: 18,
-                minHeight: 18,
-              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
 
-              padding: const EdgeInsets.symmetric(
-                horizontal: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
 
               decoration: const BoxDecoration(
                 color: Colors.red,
